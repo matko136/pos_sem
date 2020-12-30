@@ -23,6 +23,7 @@ typedef struct zdiel {
     char spravy[1000][256];
     int klientSprav[1000];
     int klientiSock[10];
+    char prezyvky[10][20];
     int pocetKlien;
     int pocetSprav;
     int nova;

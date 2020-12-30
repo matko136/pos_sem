@@ -20,6 +20,7 @@ typedef struct zdiel {
     char spravy[1000][256];
     int klientSprav[1000];
     int klientiSock[10];
+    char prezyvky[10][20];
     int pocetKlien;
     int pocetSprav;
     int nova;
@@ -41,7 +42,7 @@ void* prijimajSpravy(void* arg){
         }
         while(data->pocetNacitSprav < zdiel->pocetSprav) {
             if(zdiel->klientSprav[data->pocetNacitSprav] != data->cisloKlient) {
-                printf("Klient %d: %s\n", zdiel->klientSprav[data->pocetNacitSprav], zdiel->spravy[data->pocetNacitSprav]);
+                printf("%s: %s\n", zdiel->prezyvky[zdiel->klientSprav[data->pocetNacitSprav]-1], zdiel->spravy[data->pocetNacitSprav]);
             }
             data->pocetNacitSprav++;
         }
@@ -110,6 +111,8 @@ int main(int argc, char *argv[]) {
     );
     serv_addr.sin_port = htons(atoi(argv[2]));
 
+
+
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
@@ -155,6 +158,7 @@ int main(int argc, char *argv[]) {
     //printf("%d",zdielane->pocetKlien);
     // printf(zdiel->klientiSock[zdiel->pocetKlien-1]);
     KLIENT klientDat = {zdielane->pocetKlien, sockfd, 0, zdielane};
+    strcpy(zdielane->prezyvky[klientDat.cisloKlient-1], argv[3]);
     //pthread_mutex_unlock(zdiel->mutex);
     pthread_create(&klient, NULL, &odosielajSpravu, &klientDat);
     pthread_create(&prijimanieSprav, NULL, &prijimajSpravy, &klientDat);
