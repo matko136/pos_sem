@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
         return 4;
     }
 
-    const key_t shm_key = (key_t)0x15458480;
+    const key_t shm_key = (key_t)0x154578987;
     int shmid = shmget(shm_key, sizeof(ZDIEL), 0600);
     if(shmid < 0)
     {

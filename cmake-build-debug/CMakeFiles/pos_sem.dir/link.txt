@@ -1,0 +1,1 @@
+/usr/bin/cc  -g   CMakeFiles/pos_sem.dir/Server.c.o  -o pos_sem 

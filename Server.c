@@ -11,8 +11,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <netdb.h>
-
-int x = 0;
+pthread_t serv;
+pthread_t servPrijmKlien;
 typedef struct zdiel {
     pthread_mutex_t mutex;
     pthread_cond_t odoslana;
@@ -31,26 +31,38 @@ typedef struct server {
     ZDIEL* zdiel;
 } SERVER;
 
+void* skonci() {
+    while(1) {
+        printf("Pre ukoncenie zadajte 1:");
+        char buff[2];
+        bzero(buff,1);
+        fgets(buff, 2, stdin);
+        if (buff[0] == '1') {
+            break;
+        }
+    }
+    pthread_cancel(serv);
+    pthread_cancel(servPrijmKlien);
+    pthread_exit(NULL);
+}
+
 void* obsluhujChat(void* arg) {
+    serv = pthread_self();
     SERVER* data = (SERVER*)arg;
     ZDIEL* zdiel = data->zdiel;
     char buffer[256];
     while(1) {
         pthread_mutex_lock(&zdiel->mutex);
         while(zdiel->nova == 0) {
-            printf("cakam\n");
             pthread_cond_wait(&zdiel->odoslana, &zdiel->mutex);
-            printf("uz nie\n");
         }
         bzero(buffer,256);
         int n = read(zdiel->klientiSock[zdiel->klientSprav[zdiel->pocetSprav]-1], buffer, 255);
-        printf("cakam %d\n",1);
         if (n < 0) {
             perror("Error reading from socket");
             return 4;
         }
         strcpy(zdiel->spravy[zdiel->pocetSprav++], buffer);
-        printf("cakam %d\n",2);
         zdiel->nova = 0;
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_broadcast(&zdiel->prijata);
@@ -59,6 +71,7 @@ void* obsluhujChat(void* arg) {
 }
 
 void* manazujKlientov(void* arg) {
+    servPrijmKlien = pthread_self();
     SERVER* data = (SERVER*)arg;
     ZDIEL*
             zdiel = data->zdiel;
@@ -120,6 +133,7 @@ int main(int argc, char *argv[]) {
 
     pthread_t server;
     pthread_t servPrijmKlient;
+    pthread_t ukonci;
     pthread_mutex_t mut;
     pthread_cond_t cond1;
     pthread_cond_t cond2;
@@ -127,7 +141,7 @@ int main(int argc, char *argv[]) {
 
 
 
-    const key_t shm_key = (key_t)0x15458480;
+    const key_t shm_key = (key_t)41478545;
     int shmid = shmget(shm_key, sizeof(ZDIEL), 0600|IPC_CREAT|IPC_EXCL);
 
     if(shmid < 0)
@@ -174,17 +188,23 @@ int main(int argc, char *argv[]) {
 
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
+    pthread_create(&ukonci, NULL, &skonci, NULL);
+    pthread_join(ukonci, NULL);
     pthread_join(server, NULL);
     pthread_join(servPrijmKlient, NULL);
 
-    char buff[1];
-    fgets(buff, 1, stdin);
-    if(buff[1] == 1) {
-        x = 1;
-    }
     pthread_cond_destroy(&zdielane->odoslana);
     pthread_cond_destroy(&zdielane->prijata);
     pthread_cond_destroy(&zdielane->aktualizSpravy);
     pthread_mutex_destroy(&zdielane->mutex);
+
+    if(shmdt(addr) != 0)
+    {
+        perror("Failed to detach shared memory block:");
+        return 1;
+    }
+    close(sockfd);
+
+
     return 0;
 }
