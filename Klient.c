@@ -116,7 +116,16 @@ int main(int argc, char *argv[]) {
         return 4;
     }
 
-    const key_t shm_key = (key_t)4147486;
+    bzero(buffer,256);
+    n = read(sockfd, buffer, 255);
+    //printf("%d\n",atoi(buffer));
+    if (n < 0)
+    {
+        perror("Error reading from socket");
+        return 6;
+    }
+
+    const key_t shm_key = (key_t)atoi(buffer);
     int shmid = shmget(shm_key, sizeof(ZDIEL), 0666);
     if(shmid < 0)
     {
@@ -136,8 +145,7 @@ int main(int argc, char *argv[]) {
     pthread_t  prijimanieSprav;
     struct zdiel* zdielane = (struct zdiel*)addr;
     //pthread_mutex_lock(zdiel->mutex);
-    sleep(3);
-    printf("%d",zdielane->pocetKlien);
+    //printf("%d",zdielane->pocetKlien);
     // printf(zdiel->klientiSock[zdiel->pocetKlien-1]);
     KLIENT klientDat = {zdielane->pocetKlien, sockfd, 0, zdielane};
     //pthread_mutex_unlock(zdiel->mutex);

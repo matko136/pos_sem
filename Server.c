@@ -11,8 +11,10 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <netdb.h>
+#include <limits.h>
 pthread_t serv;
 pthread_t servPrijmKlien;
+key_t shm_key_glob;
 typedef struct zdiel {
     pthread_mutex_t mutex;
     pthread_cond_t odoslana;
@@ -85,12 +87,27 @@ void* manazujKlientov(void* arg) {
         cli_len = sizeof(cli_addr);
 
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-        pthread_mutex_lock(&zdiel->mutex);
+
         if (newsockfd < 0)
         {
             perror("ERROR on accept");
             return 3;
         }
+
+        int a = (int)shm_key_glob;
+        char key[256];
+        sprintf(key, "%d", a);
+
+        //char* key = shm_key_glob + '0';
+        //printf("%s\n",key);
+        int n = write(newsockfd, key, strlen(key)+1);
+        //printf("%s", key);
+        if (n < 0)
+        {
+            perror("Error writing to socket");
+            return 5;
+        }
+        pthread_mutex_lock(&zdiel->mutex);
         zdiel->pocetKlien++;
         zdiel->klientiSock[zdiel->pocetKlien-1] = newsockfd;
         pthread_mutex_unlock(&zdiel->mutex);
@@ -104,7 +121,7 @@ void* manazujKlientov(void* arg) {
 
 
 int main(int argc, char *argv[]) {
-
+    srand(time(NULL));
     int sockfd;
     struct sockaddr_in serv_addr;
     int n;
@@ -141,7 +158,8 @@ int main(int argc, char *argv[]) {
 
 
 
-    const key_t shm_key = (key_t)4147486;
+    const key_t shm_key = (key_t)rand()%INT_MAX;
+    shm_key_glob = shm_key;
     int shmid = shmget(shm_key, sizeof(ZDIEL), 0666|IPC_CREAT|IPC_EXCL);
 
     if(shmid < 0)
