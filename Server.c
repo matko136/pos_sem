@@ -30,7 +30,7 @@ typedef struct server {
     struct sockaddr_in serv_addr;
     ZDIEL* zdiel;
 } SERVER;
-//uprava
+
 void* skonci() {
     while(1) {
         printf("Pre ukoncenie zadajte 1:");
@@ -141,8 +141,8 @@ int main(int argc, char *argv[]) {
 
 
 
-    const key_t shm_key = (key_t)41478545;
-    int shmid = shmget(shm_key, sizeof(ZDIEL), 0600|IPC_CREAT|IPC_EXCL);
+    const key_t shm_key = (key_t)4147486;
+    int shmid = shmget(shm_key, sizeof(ZDIEL), 0666|IPC_CREAT|IPC_EXCL);
 
     if(shmid < 0)
     {

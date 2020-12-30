@@ -40,7 +40,9 @@ void* prijimajSpravy(void* arg){
             pthread_cond_wait(&zdiel->prijata, &zdiel->mutex);
         }
         while(data->pocetNacitSprav < zdiel->pocetSprav) {
-            printf("Klient %d: %s\n", zdiel->klientSprav[data->pocetNacitSprav],  zdiel->spravy[data->pocetNacitSprav]);
+            if(zdiel->klientSprav[data->pocetNacitSprav] != data->cisloKlient) {
+                printf("Klient %d: %s\n", zdiel->klientSprav[data->pocetNacitSprav], zdiel->spravy[data->pocetNacitSprav]);
+            }
             data->pocetNacitSprav++;
         }
     }
@@ -51,7 +53,7 @@ void* odosielajSpravu(void* arg){
     ZDIEL* zdiel = data->zdiel;
     char buffer[256];
     while(1) {
-        printf("Zadaj spravu: ");
+        //printf("Zadaj spravu: ");
         bzero(buffer,256);
         fgets(buffer, 255, stdin);
         pthread_mutex_lock(&zdiel->mutex);
@@ -114,8 +116,8 @@ int main(int argc, char *argv[]) {
         return 4;
     }
 
-    const key_t shm_key = (key_t)0x154578987;
-    int shmid = shmget(shm_key, sizeof(ZDIEL), 0600);
+    const key_t shm_key = (key_t)4147486;
+    int shmid = shmget(shm_key, sizeof(ZDIEL), 0666);
     if(shmid < 0)
     {
         perror("Failed to open shared memory block:");
