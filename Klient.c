@@ -11,7 +11,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <netdb.h>
-
+pthread_t prijSprav;
 typedef struct zdiel {
     pthread_mutex_t mutex;
     pthread_cond_t odoslana;
@@ -52,10 +52,17 @@ void* odosielajSpravu(void* arg){
     KLIENT* data = (KLIENT*)arg;
     ZDIEL* zdiel = data->zdiel;
     char buffer[256];
+    char buff[7];
     while(1) {
         //printf("Zadaj spravu: ");
         bzero(buffer,256);
         fgets(buffer, 255, stdin);
+        char s[7];
+        memcpy(s, buffer, 6);
+        if(strcmp(s,";odist") == 0) {
+            pthread_cancel(prijSprav);
+            pthread_exit(NULL);
+        }
         pthread_mutex_lock(&zdiel->mutex);
         while(zdiel->nova == 1) {
             pthread_cond_wait(&zdiel->prijata, &zdiel->mutex);
@@ -116,7 +123,16 @@ int main(int argc, char *argv[]) {
         return 4;
     }
 
-    const key_t shm_key = (key_t)4147486;
+    bzero(buffer,256);
+    n = read(sockfd, buffer, 255);
+    //printf("%d\n",atoi(buffer));
+    if (n < 0)
+    {
+        perror("Error reading from socket");
+        return 6;
+    }
+
+    const key_t shm_key = (key_t)atoi(buffer);
     int shmid = shmget(shm_key, sizeof(ZDIEL), 0666);
     if(shmid < 0)
     {
@@ -136,15 +152,16 @@ int main(int argc, char *argv[]) {
     pthread_t  prijimanieSprav;
     struct zdiel* zdielane = (struct zdiel*)addr;
     //pthread_mutex_lock(zdiel->mutex);
-    sleep(3);
-    printf("%d",zdielane->pocetKlien);
+    //printf("%d",zdielane->pocetKlien);
     // printf(zdiel->klientiSock[zdiel->pocetKlien-1]);
     KLIENT klientDat = {zdielane->pocetKlien, sockfd, 0, zdielane};
     //pthread_mutex_unlock(zdiel->mutex);
     pthread_create(&klient, NULL, &odosielajSpravu, &klientDat);
     pthread_create(&prijimanieSprav, NULL, &prijimajSpravy, &klientDat);
     pthread_join(klient, NULL);
-    pthread_join(prijimajSpravy, NULL);
+    //pthread_join(prijimajSpravy, NULL);
+
+    close(zdielane->klientiSock[klientDat.cisloKlient-1]);
 
     return 0;
 }
