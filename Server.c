@@ -30,7 +30,7 @@ typedef struct server {
     struct sockaddr_in serv_addr;
     ZDIEL* zdiel;
 } SERVER;
-
+//skuska commitu
 void* obsluhujChat(void* arg) {
     SERVER* data = (SERVER*)arg;
     ZDIEL* zdiel = data->zdiel;
