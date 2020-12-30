@@ -30,7 +30,7 @@ typedef struct server {
     struct sockaddr_in serv_addr;
     ZDIEL* zdiel;
 } SERVER;
-
+//uprava
 void* skonci() {
     while(1) {
         printf("Pre ukoncenie zadajte 1:");
