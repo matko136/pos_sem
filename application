@@ -1,0 +1,162 @@
+#!/bin/bash
+
+# vyber server alebo klient spustit
+# server 
+# 1. vyber portu
+# 2. spustit alebo ukoncit
+
+# klient
+# 1. vyber prezyvki
+# 2. vyber portu
+
+
+#       Premene
+nickname=""
+port=0
+vyber_mozn=10
+localhost=localhost
+
+
+name_server=./server
+name_klient=./klient
+
+
+function pmenu_hl() {
+	clear
+	echo "---------===MENU===---------"
+	echo "<1>------Spustenie Serveru--"
+	echo "<2>------Spustenie Klienta--"
+	echo "<3>------Informacie---------"
+	echo "<0>------Ukoncit applikaciu-"
+	echo "---------==========---------"
+	read -p "---Vasa volba: " vol
+	return $vol
+}
+
+function pmenu_info() {
+        clear
+        echo "---------===INFORMACIE===---------"
+        echo "<1>------Zdrojovy kod: Serveru----"
+        echo "<2>------Zdrojovy kod: Klientu----"
+        echo "<0>------Navrat do hl.Menu--------"
+        echo "---------================---------"
+        read -p "---Vasa volba: " vol
+        
+        if [[ $vol == "1" ]]
+        then
+        	cat server.c
+        	echo ""
+        	read -p "---Pre ukoncenie stlacte Enter: " vol
+        fi       
+        
+        if [[ $vol == "2" ]]
+        then
+                cat klient.c
+                echo ""
+                read -p "---Pre ukoncenie stlacte Enter: " vol
+        fi
+
+}
+
+function pmenu_server() {
+	clear
+	echo "---------===Spustenie Serveru===---------"
+        read -p "---Zadajte cislo portu: " port
+        echo "<1>------Spustenie server: Port:$port"
+        echo "<0>------Navrat do hl.Menu---------------"
+        echo "---------=======================---------"
+        read -p "---Vasa volba: " vol
+        return $vol
+}
+
+function pmenu_klient() {
+        clear
+        echo "---------===Spustenie Klienta===---------"
+        read -p "---Zadajte svoj nickname: " nickname
+        read -p "---Zadajte port serveru: " port
+        echo "<1>------Spustenie klienta: Nickname: $nickname"
+        echo "                                Port: $port"
+        echo "<0>------Navrat do hl.Menu---------------"
+        echo "---------=======================---------"
+        read -p "---Vasa volba: " vol
+        return $vol
+}
+
+
+while [[ true ]]
+do
+	#	clear
+	#	Vypis hl. menu, volba poziadavky
+	pmenu_hl			
+	#	Volba
+	case $? in
+			
+		1) #	"SERVER"
+		pmenu_server
+		if [[ $? == "1" ]]
+		then
+			clear
+			echo "---SERVER---"
+			$name_server echo "$port"		# 	!! MOZNA zmena
+			break
+		fi
+		;;
+		
+		2) #	"KLIENT"
+		pmenu_klient
+		if [[ $? == "1" ]]
+                then
+                	clear
+                        echo "---KLIENT---"
+                        $name_klient "$localhost" "$port" "$nickname"
+                	break
+                fi
+		;;
+		
+		3) #	"INFORMACIE"
+			pmenu_info
+		;;
+		0) # 	"EXIT"
+		break
+		;;		
+		
+	 	*) #	"UNKNOWN"
+	 	;;
+	
+	esac	
+done
+
+echo "Aplikacia bola ukoncena"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
