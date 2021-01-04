@@ -12,28 +12,11 @@
 #include <sys/shm.h>
 #include <netdb.h>
 #include <limits.h>
+#include "Server.h"
+#include "RSA.h"
 pthread_t serv;
 pthread_t servPrijmKlien;
 key_t shm_key_glob;
-typedef struct zdiel {
-    pthread_mutex_t mutex;
-    pthread_cond_t odoslana;
-    pthread_cond_t prijata;
-    pthread_cond_t aktualizSpravy;
-    char spravy[1000][256];
-    int klientSprav[1000];
-    int klientiSock[10];
-    char prezyvky[10][20];
-    int pocetKlien;
-    int pocetSprav;
-    int nova;
-} ZDIEL;
-typedef struct server {
-    int sock;
-    struct sockaddr_in serv_addr;
-    ZDIEL* zdiel;
-} SERVER;
-
 void* skonci() {
     while(1) {
         printf("Pre ukoncenie zadajte 1:");
@@ -50,7 +33,7 @@ void* skonci() {
 }
 
 void* obsluhujChat(void* arg) {
-    serv = pthread_self();
+    /*serv = pthread_self();
     SERVER* data = (SERVER*)arg;
     ZDIEL* zdiel = data->zdiel;
     char buffer[256];
@@ -69,6 +52,33 @@ void* obsluhujChat(void* arg) {
         zdiel->nova = 0;
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_broadcast(&zdiel->prijata);
+    }*/
+    servPrijmKlien = pthread_self();
+    SERVER* data = (SERVER*)arg;
+    ZDIEL*
+            zdiel = data->zdiel;
+    int sockfd = data->sock;
+    listen(sockfd, 5);
+    while(1) {
+        int newsockfd;
+        socklen_t cli_len;
+        struct sockaddr_in cli_addr;
+        cli_len = sizeof(cli_addr);
+        pthread_mutex_lock(&zdiel->mutex);
+        while(zdiel->nova == 0) {
+            pthread_cond_wait(&zdiel->odoslana, &zdiel->mutex);
+        }
+        printf("Ciel\n");
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
+        if (newsockfd < 0)
+        {
+            perror("ERROR on accept");
+            return 3;
+        }
+        obsluhujKlienta(newsockfd, data);
+        zdiel->nova = 0;
+        pthread_mutex_unlock(&zdiel->mutex);
+        pthread_cond_broadcast(&zdiel->prijata);
     }
     return NULL;
 }
@@ -78,51 +88,42 @@ void* manazujKlientov(void* arg) {
     SERVER* data = (SERVER*)arg;
     ZDIEL*
             zdiel = data->zdiel;
-    int sockfd = data->sock;
+    int sockfd = data->sockPripojenie;
     listen(sockfd, 5);
-    struct sockaddr_in serv_addr = data->serv_addr;
     while(1) {
         int newsockfd;
         socklen_t cli_len;
         struct sockaddr_in cli_addr;
         cli_len = sizeof(cli_addr);
-
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-
+        printf("akceptovane\n");
         if (newsockfd < 0)
         {
             perror("ERROR on accept");
             return 3;
         }
-
+        char buffer[256];
+        /*bzero(buffer, 256);
+        read(newsockfd, buffer, 255);*/
+        bzero(buffer, 256);
         int a = (int)shm_key_glob;
-        char key[256];
-        sprintf(key, "%d", a);
+        sprintf(buffer, "%d", a);
+        int n = write(newsockfd, buffer,strlen(buffer));
+        printf("%d\n", a);
 
-        //char* key = shm_key_glob + '0';
-        //printf("%s\n",key);
-        int n = write(newsockfd, key, strlen(key)+1);
-        //printf("%s", key);
         if (n < 0)
         {
             perror("Error writing to socket");
             return 5;
         }
-        pthread_mutex_lock(&zdiel->mutex);
-        zdiel->pocetKlien++;
-        zdiel->klientiSock[zdiel->pocetKlien-1] = newsockfd;
-        pthread_mutex_unlock(&zdiel->mutex);
     }
     return NULL;
 }
 
-
-
-
-
-
 int main(int argc, char *argv[]) {
     srand(time(NULL));
+    initFirst1000Primes();
+
     int sockfd;
     struct sockaddr_in serv_addr;
     int n;
@@ -149,6 +150,30 @@ int main(int argc, char *argv[]) {
         return 2;
     }
 
+    int sockPrip;
+    struct sockaddr_in serv_addrPrip;
+
+    if (argc < 2) {
+        fprintf(stderr, "usage %s port\n", argv[0]);
+        return 1;
+    }
+
+    bzero((char *) &serv_addrPrip, sizeof(serv_addrPrip));
+    serv_addrPrip.sin_family = AF_INET;
+    serv_addrPrip.sin_addr.s_addr = INADDR_ANY;
+    serv_addrPrip.sin_port = htons(atoi(argv[2]));
+
+    sockPrip = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockPrip < 0) {
+        perror("Error creating socket");
+        return 1;
+    }
+
+    if (bind(sockPrip, (struct sockaddr *) &serv_addrPrip, sizeof(serv_addrPrip)) < 0) {
+        perror("Error binding socket address");
+        return 2;
+    }
+
     pthread_t server;
     pthread_t servPrijmKlient;
     pthread_t ukonci;
@@ -156,8 +181,6 @@ int main(int argc, char *argv[]) {
     pthread_cond_t cond1;
     pthread_cond_t cond2;
     pthread_cond_t cond3;
-
-
 
     const key_t shm_key = (key_t)rand()%INT_MAX;
     shm_key_glob = shm_key;
@@ -179,8 +202,6 @@ int main(int argc, char *argv[]) {
     zdielane->odoslana = cond1;
     zdielane->prijata = cond2;
     zdielane->aktualizSpravy = cond3;
-    zdielane->pocetKlien = 0;
-    zdielane->pocetSprav = 0;
     zdielane->nova = 0;
 
     pthread_mutexattr_t mutattr;
@@ -203,19 +224,80 @@ int main(int argc, char *argv[]) {
     pthread_condattr_setpshared(&condattr3, PTHREAD_PROCESS_SHARED);
     pthread_cond_init(&zdielane->aktualizSpravy, &condattr3);
     //ZDIEL zdiel = {&mut, &cond1, &cond2, &cond3, &spravy, &klientSpravy,"" , &klientiSock, 0, 0,0};
-    SERVER serv = {sockfd, serv_addr, zdielane};
+    int klientiId[10];
+    //char *prezyvky[10];
+    char ** prezyvky = (char **)malloc(10*sizeof(char *));
+    for(int i = 0; i< 10; i++) {
+        prezyvky[i] = (char *)malloc(256*sizeof(char));
+    }
+    //char *hesla[10];
+    char ** hesla = (char **)malloc(10*sizeof(char *));
+    for(int i = 0; i< 10; i++) {
+        //char hesl[256];
+        //hesla[i] = &hesl;
+        hesla[i] = (char *)malloc(256*sizeof(char));
+    }
 
+
+    //CHATVLAKNO *chatVlakna[10];
+    CHATVLAKNO ** chatVlakna = (CHATVLAKNO **)malloc(10*sizeof(CHATVLAKNO *));
+    char ** spravyPole[1000];
+    for(int i = 0; i < 10; i++) {
+        chatVlakna[i] = (CHATVLAKNO *)malloc(sizeof(CHATVLAKNO));
+        char ** spravy = (char **)malloc(1000*sizeof(char *));
+        for(int j = 0; j < 1000; j++) {
+            spravy[j] = (char *)malloc(256*sizeof(char));
+        }
+        int * klientSpr = (int *)malloc(1000*sizeof(int));
+        //int klientSpr[1000];
+        int * klienti = (int *)malloc(10*sizeof(int));
+        char * nazov = (char *)malloc(256*sizeof(char));
+        chatVlakna[i]->spravy = spravy;
+        chatVlakna[i]->klientSprav = klientSpr;
+        chatVlakna[i]->nazov = nazov;
+        chatVlakna[i]->klienti = klienti;
+        chatVlakna[i]->pocetSprav = 0;
+        //CHATVLAKNO vlak = {0, nazov, spravy, 0, klienti, 2, klientSpr, shm_key};
+        //strcpy(vlak.spravy[0], "jes");
+        //key_t shm_keyKey = vlak->shm_key_zdiel_Vlak;
+        //chatVlakna[i] = &vlak;
+    }
+
+    //key_t shm_keyKey = chatVlakna[0]->shm_key_zdiel_Vlak;
+    //CHATVLAKNO *chatVlakna[10];
+    SERVER serv = {0, klientiId, prezyvky, hesla, sockfd, sockPrip, zdielane, chatVlakna, 0};
+    //strcpy(serv.chatvlakno[0]->spravy[0], "jes");
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
     pthread_create(&ukonci, NULL, &skonci, NULL);
-    pthread_join(ukonci, NULL);
     pthread_join(server, NULL);
+    pthread_join(ukonci, NULL);
     pthread_join(servPrijmKlient, NULL);
 
     pthread_cond_destroy(&zdielane->odoslana);
     pthread_cond_destroy(&zdielane->prijata);
     pthread_cond_destroy(&zdielane->aktualizSpravy);
     pthread_mutex_destroy(&zdielane->mutex);
+
+    for(int i = 0; i < 10 ; i++) {
+        free(chatVlakna[i]->klienti);
+        free(chatVlakna[i]->nazov);
+        free(chatVlakna[i]->klientSprav);
+        free(chatVlakna[i]);
+    }
+    free(chatVlakna);
+    for(int i = 0; i < 10; i++) {
+        free(prezyvky[i]);
+        free(hesla[i]);
+    }
+    free(prezyvky);
+    free(hesla);
+    for(int i = 0; i < 10; i++) {
+        for(int j = 0; j < 1000; j++) {
+            free(spravyPole[i][j]);
+        }
+        free(spravyPole[i]);
+    }
 
     if(shmdt(addr) != 0)
     {
