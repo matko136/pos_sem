@@ -280,6 +280,61 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         char sprava[256];
         //strcpy(data->chatvlakno[0]->spravy[data->chatvlakno[0]->pocetSprav],sprava);
     }
+    else if(buffer[0] == '8') { //nastavenie pridanie klienta
+        write(newsockfd, buffer,strlen(buffer)); // neviem naco
+
+        int cisloKl = 0;
+        int cisloKlToAdd = 0;
+
+        bzero(buffer, 256);
+        read(newsockfd, buffer, 255);
+        cisloKlToAdd = atoi(buffer);
+
+        write(newsockfd, buffer,strlen(buffer));
+
+        bzero(buffer, 256);
+        read(newsockfd, buffer, 255);
+        int cisVlak = atoi(buffer);
+
+        write(newsockfd, buffer,strlen(buffer));
+
+
+
+
+        data->chatvlakno[cisVlak-1]->klienti[data->chatvlakno[cisVlak-1]->pocetKlientov++] = cisloKlToAdd;
+
+    }
+    else if(buffer[0] == '9') {
+        write(newsockfd, buffer,strlen(buffer));
+        int cisloVlak = 0;
+        bzero(buffer, 256);
+        read(newsockfd, buffer, 255);
+        cisloVlak = atoi(buffer);
+        write(newsockfd, buffer,strlen(buffer));////odpovedanie na strane klienta
+        for(int i = 0; i < data->pocetKlientov; i++) {
+            bool success = true;
+            for (int j = 0; j < data->chatvlakno[cisloVlak-1]->pocetKlientov; j++) {
+                if (data->chatvlakno[cisloVlak-1]->klienti[j] == i+1) {
+                    success = false;
+                    break;
+                }
+            }
+            if(success) {
+                read(newsockfd, buffer, 255);
+                bzero(buffer, 256);
+                sprintf(buffer,"%d", i+1);
+                write(newsockfd, buffer,strlen(buffer));
+                read(newsockfd, buffer, 255);
+                bzero(buffer, 256);
+                strcpy(buffer, data->prezyvky[i]);
+                write(newsockfd, buffer,strlen(buffer));
+            }
+        }
+        read(newsockfd, buffer, 255);
+        bzero(buffer, 256);
+        strcpy(buffer, "-1");
+        write(newsockfd, buffer,strlen(buffer));
+    }
     return ret;
 }
 #endif //CHATAPP_SERVER_H

@@ -41,6 +41,10 @@ char prezyvka[256];
 int pocetVlakien;
 KLIENT *klData;
 int * makeNewChatIds;
+int * addToChatIds;
+int countAddToChat = 0;
+int countMakeNewChat = 0;
+int countChatToConnect = 0;
 
 char* writeAndReadSocket(char* input, int serv_address, bool connectS, int* destSourcSock) {
     char * buffer= malloc(256*sizeof (char));
@@ -302,6 +306,7 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         if(count == 0) {
             printf("Ziadne vlakna neboli najdene\n");
         }
+        countChatToConnect = count;
         free(sockfd);
         return 0;
     }else if(poziadavka == 6) {
@@ -338,6 +343,7 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             ids[0] = 0;
         }
         makeNewChatIds = ids;
+        countMakeNewChat = count;
         free(sockfd);
         return 0;
     }else if(poziadavka == 7) {
@@ -367,7 +373,72 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         writeAndReadSocket(nazov, 2, false, sockfd);
         free(sockfd);
         return 0;
-    }else {
+    } else if(poziadavka == 8) {
+        bzero(buffer, 256);
+        strcpy(buffer, "8");
+        pthread_mutex_lock(&zdiel->mutex);
+        while(zdiel->nova == 1) {
+            pthread_cond_wait(&zdiel->prijata, &zdiel->mutex);
+        }
+        zdiel->nova = 1;
+        pthread_mutex_unlock(&zdiel->mutex);
+        pthread_cond_signal(&zdiel->odoslana);
+        int* sockfd = malloc(sizeof(int));
+        writeAndReadSocket(buffer,2,true, sockfd); // na server '8'
+
+        //int klientId = cisloKl;
+        int klientToAdd = cisloSpr;
+
+        bzero(buffer, 256);
+        sprintf(buffer,"%d", klientToAdd);
+        writeAndReadSocket(buffer, 2, false, sockfd);
+
+        bzero(buffer, 256);
+        sprintf(buffer,"%d", cisloVlak);
+        writeAndReadSocket(buffer, 2, false, sockfd);
+
+        free(sockfd);
+        return 0;
+    }
+    else if(poziadavka == 9) {
+        int count = 0;
+        bzero(buffer, 256);
+        strcpy(buffer, "9");
+        pthread_mutex_lock(&zdiel->mutex);
+        while(zdiel->nova == 1) {
+            pthread_cond_wait(&zdiel->prijata, &zdiel->mutex);
+        }
+        zdiel->nova = 1;
+        pthread_mutex_unlock(&zdiel->mutex);
+        pthread_cond_signal(&zdiel->odoslana);
+        int* sockfd = malloc(sizeof(int));
+        writeAndReadSocket(buffer,2,true, sockfd);
+        //////
+
+        char cisloKli[256];
+
+        bzero(buffer, 256);
+        sprintf(buffer, "%d", cisloVlak); // odosielanie cislo vlakna
+        writeAndReadSocket(buffer, 2, false, sockfd);
+
+        int ids[10];
+        while(strcmp("-1",strcpy(cisloKli, writeAndReadSocket(buffer, 2, false, sockfd)))) {
+            count++;
+            char prezyvkaa[256];
+            bzero(prezyvkaa, 256);
+            strcpy(prezyvkaa, writeAndReadSocket(buffer, 2, false, sockfd));
+            printf("%d. %s", count, prezyvkaa);
+            ids[count-1] = atoi(cisloKli);
+            bzero(cisloKli,256);
+        }
+        if(count == 0) {
+            ids[0] = 0;
+        }
+        addToChatIds = ids;
+        countAddToChat = count;
+        free(sockfd);
+        return 0;
+    } else {
         printf("Ukoncuje sa\n");
         sleep(3);
         return 0;
