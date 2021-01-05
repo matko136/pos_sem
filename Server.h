@@ -59,8 +59,12 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         bzero(heslo, 256);
         read(newsockfd, heslo, 255);
         bool success = false;
+        char prezyvka[256];
+        char hsl[256];
         for(int i = 0; i < data->pocetKlientov; i++) {
+            strcpy(prezyvka, data->prezyvky[i]);
             if (strcmp(data->prezyvky[i], meno) == 0) {
+                strcpy(hsl, data->hesla[i]);
                 if (strcmp(data->hesla[i], heslo) == 0) {
                     success = true;
                     ret = i + 1;

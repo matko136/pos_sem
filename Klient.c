@@ -15,18 +15,19 @@
 #include "RSA.h"
 
 void *prijimajSpravy(void *arg) {
-    bool prvyRaz = true;
+    //bool prvyRaz = true;
     KLIENT *data = (KLIENT *) arg;
     ZDIEL *zdiel = data->zdiel;
     char buffer[256];
     while (1) {
-        if (!prvyRaz)
-            printf("som spat\n");
+        /*if (prvyRaz)
+            printf("som spat\n");*/
         if (data->aktChat != 0) {
-            prvyRaz = false;
-            while (data->pocetNacitSprav[data->aktChat - 1] == data->chatvlakno[data->aktChat - 1]->pocetSprav) {
+            //prvyRaz = false;
+            while (data->pocetNacitSprav[data->aktChat - 1] == data->chatvlakno[data->aktChat - 1]->pocetSprav && data->aktChat != 0) {
                 printf("stojim\n");
                 pthread_cond_wait(&data->chatvlakno[data->aktChat - 1]->odoslana,
+
                                   &data->chatvlakno[data->aktChat - 1]->mutex);
             }
             while (data->pocetNacitSprav[data->aktChat - 1] < data->chatvlakno[data->aktChat - 1]->pocetSprav) {
@@ -85,6 +86,11 @@ void *odosielajSpravu(void *arg) {
             }
 
         } else if (strcmp(s, ";menu") == 0) {
+            //int predosly = data->aktChat;
+            if (data->aktChat != 0) {
+                pthread_cancel(prijSprav);
+                data->aktChat = 0;
+            }
             printf("Zadajte cislo volby ktoru chcete vykonat:\n");
             printf("1. pripojit sa k existujucemu chatu\n");
             printf("2. vybrat cloveka na zalozenie noveho chatu\n");
@@ -104,14 +110,15 @@ void *odosielajSpravu(void *arg) {
                     int vybrCislo = atoi(buffer);
                     printf("%d\n", vybrCislo);
                     printf("%d\n", data->chatvlakno[vybrCislo - 1]->cislo);
-                    int predosly = data->aktChat;
+                    /*int predosly = data->aktChat;
                     if (data->aktChat != 0) {
                         data->aktChat = 0;
                         pthread_cond_broadcast(&data->chatvlakno[predosly - 1]->odoslana);
-                    }
+                    }*/
                     data->aktChat = data->chatvlakno[vybrCislo - 1]->cislo;
+                    pthread_create(&prijSprav, NULL, &prijimajSpravy, &klData);
                     printf("%d\n", data->aktChat);
-                    printf("%d\n", predosly);
+                    //printf("%d\n", predosly);
                 }
                 /*bzero(buffer, 256);
                 fgets(buffer, 255, stdin);
@@ -242,15 +249,13 @@ int main(int argc, char *argv[]) {
     CHATVLAKNO * chatvlakno;
     ZDIEL* zdiel;*/
     pthread_t klient;
-    pthread_t prijimanieSprav;
-
     int pocetNacSprav[20];
     CHATVLAKNOZDIEL vlakna[20];
     KLIENT klientDat = {cisloKlienta, pocetNacSprav, pass, 0, vlakna, zdiel, 0};
     klData = &klientDat;
     pocetVlakien = 0;
     pthread_create(&klient, NULL, &odosielajSpravu, &klientDat);
-    pthread_create(&prijimanieSprav, NULL, &prijimajSpravy, &klientDat);
+
     pthread_join(klient, NULL);
 
     return 0;

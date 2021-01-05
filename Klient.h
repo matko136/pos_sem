@@ -70,10 +70,10 @@ char* writeAndReadSocket(char* input, int serv_address, bool connectS, int* dest
     } else {
         sockfd = *destSourcSock;
     }
-    bzero(buffer, 256);
-    strcpy(buffer, input);
+    //bzero(buffer, 256);
+    //strcpy(buffer, input);
     if(serv_address != 1) {
-        int n = write(sockfd, buffer, strlen(buffer));
+        int n = write(sockfd, input, strlen(buffer));
     }
     /*if (n < 0)
     {
