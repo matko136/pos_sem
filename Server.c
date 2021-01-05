@@ -33,26 +33,6 @@ void* skonci() {
 }
 
 void* obsluhujChat(void* arg) {
-    /*serv = pthread_self();
-    SERVER* data = (SERVER*)arg;
-    ZDIEL* zdiel = data->zdiel;
-    char buffer[256];
-    while(1) {
-        pthread_mutex_lock(&zdiel->mutex);
-        while(zdiel->nova == 0) {
-            pthread_cond_wait(&zdiel->odoslana, &zdiel->mutex);
-        }
-        bzero(buffer,256);
-        int n = read(zdiel->klientiSock[zdiel->klientSprav[zdiel->pocetSprav]-1], buffer, 255);
-        if (n < 0) {
-            perror("Error reading from socket");
-            return 4;
-        }
-        strcpy(zdiel->spravy[zdiel->pocetSprav++], buffer);
-        zdiel->nova = 0;
-        pthread_mutex_unlock(&zdiel->mutex);
-        pthread_cond_broadcast(&zdiel->prijata);
-    }*/
     servPrijmKlien = pthread_self();
     SERVER* data = (SERVER*)arg;
     ZDIEL*
@@ -96,20 +76,16 @@ void* manazujKlientov(void* arg) {
         struct sockaddr_in cli_addr;
         cli_len = sizeof(cli_addr);
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-        printf("akceptovane\n");
         if (newsockfd < 0)
         {
             perror("ERROR on accept");
             return 3;
         }
         char buffer[256];
-        /*bzero(buffer, 256);
-        read(newsockfd, buffer, 255);*/
         bzero(buffer, 256);
         int a = (int)shm_key_glob;
         sprintf(buffer, "%d", a);
         int n = write(newsockfd, buffer,strlen(buffer));
-        printf("%d\n", a);
 
         if (n < 0)
         {
@@ -223,23 +199,17 @@ int main(int argc, char *argv[]) {
     pthread_condattr_init(&condattr3);
     pthread_condattr_setpshared(&condattr3, PTHREAD_PROCESS_SHARED);
     pthread_cond_init(&zdielane->aktualizSpravy, &condattr3);
-    //ZDIEL zdiel = {&mut, &cond1, &cond2, &cond3, &spravy, &klientSpravy,"" , &klientiSock, 0, 0,0};
     int klientiId[10];
-    //char *prezyvky[10];
     char ** prezyvky = (char **)malloc(10*sizeof(char *));
     for(int i = 0; i< 10; i++) {
         prezyvky[i] = (char *)malloc(256*sizeof(char));
     }
-    //char *hesla[10];
     char ** hesla = (char **)malloc(10*sizeof(char *));
     for(int i = 0; i< 10; i++) {
-        //char hesl[256];
-        //hesla[i] = &hesl;
         hesla[i] = (char *)malloc(256*sizeof(char));
     }
 
 
-    //CHATVLAKNO *chatVlakna[10];
     CHATVLAKNO ** chatVlakna = (CHATVLAKNO **)malloc(10*sizeof(CHATVLAKNO *));
     char ** spravyPole[1000];
     for(int i = 0; i < 10; i++) {
@@ -249,7 +219,6 @@ int main(int argc, char *argv[]) {
             spravy[j] = (char *)malloc(256*sizeof(char));
         }
         int * klientSpr = (int *)malloc(1000*sizeof(int));
-        //int klientSpr[1000];
         int * klienti = (int *)malloc(10*sizeof(int));
         char * nazov = (char *)malloc(256*sizeof(char));
         chatVlakna[i]->spravy = spravy;
@@ -257,16 +226,9 @@ int main(int argc, char *argv[]) {
         chatVlakna[i]->nazov = nazov;
         chatVlakna[i]->klienti = klienti;
         chatVlakna[i]->pocetSprav = 0;
-        //CHATVLAKNO vlak = {0, nazov, spravy, 0, klienti, 2, klientSpr, shm_key};
-        //strcpy(vlak.spravy[0], "jes");
-        //key_t shm_keyKey = vlak->shm_key_zdiel_Vlak;
-        //chatVlakna[i] = &vlak;
     }
 
-    //key_t shm_keyKey = chatVlakna[0]->shm_key_zdiel_Vlak;
-    //CHATVLAKNO *chatVlakna[10];
     SERVER serv = {0, klientiId, prezyvky, hesla, sockfd, sockPrip, zdielane, chatVlakna, 0};
-    //strcpy(serv.chatvlakno[0]->spravy[0], "jes");
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
     pthread_create(&ukonci, NULL, &skonci, NULL);

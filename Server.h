@@ -93,7 +93,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
             }
         }
         if(success) {
-            //data->pocetKlientov = 2;
             strcpy(data->prezyvky[data->pocetKlientov], meno);
             strcpy(data->hesla[data->pocetKlientov++], heslo);
             ret = data->pocetKlientov;
@@ -122,11 +121,7 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         write(newsockfd, buffer,strlen(buffer));
         char addr1[256];
         char addr2[256];
-        //sprintf(addr1, "%s", &data->chatvlakno[cisloVlakna-1]);
-        //strcpy(addr1, (data->chatvlakno)->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav]);
         strcpy(data->chatvlakno[cisloVlakna-1]->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav],sprava);
-        //strcpy(data->chatvlakno[cisloVlakna-1]->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav],sprava);
-        //strcpy(data->chatvlakno[cisloVlakna-1]->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav], sprava);
         data->chatvlakno[cisloVlakna-1]->klientSprav[data->chatvlakno[cisloVlakna-1]->pocetSprav++] = cisloKlienta;
     } else if(buffer[0] == '4') {
         int cisloVlakna = 0;
@@ -234,7 +229,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         }
         CHATVLAKNOZDIEL* zdielVlak = (CHATVLAKNOZDIEL*)addr;
         zdielVlak->nazov = nazov;
-        //strcpy(zdielVlak->nazov, nazov);
         zdielVlak->pocetSprav = 0;
         zdielVlak->cislo = ++data->pocVlakien;
         pthread_mutex_t mut;
@@ -251,38 +245,14 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         pthread_condattr_init(&condattr);
         pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
         pthread_cond_init(&zdielVlak->odoslana, &condattr);
-        /*
-         *  int cislo;
-    char* nazov;
-    char** spravy;
-    int pocetSprav;
-    int* klienti;
-    int pocetKlientov;
-    int* klientSprav;
-    key_t * shm_key_zdiel_Vlak;
-         */
-        /*char * spravy[1000];
-        for(int i = 0; i < 1000; i++) {
-            char spr[256];
-            spravy[1000] = &spr;
-        }
-        int klientSpr[1000];
-        int klienti[10];*/
-        //klienti[0] = cisloKl;
-        //klienti[1] = cisloKlToAdd;
-        /*data->chatvlakno[data->pocVlakien-1]->cislo = data->pocVlakien;
-        strcpy(data->chatvlakno[data->pocVlakien-1]->nazov,nazov);
-        data->chatvlakno[data->pocVlakien-1]->spravy = spravy;*/
-        //CHATVLAKNO vlak = {data->pocVlakien, nazov, spravy, 0, klienti, 2, klientSpr, shm_key};
+
         data->chatvlakno[data->pocVlakien-1]->cislo = data->pocVlakien;
         strcpy(data->chatvlakno[data->pocVlakien-1]->nazov, nazov);
         data->chatvlakno[data->pocVlakien-1]->pocetKlientov = 2;
         data->chatvlakno[data->pocVlakien-1]->shm_key_zdiel_Vlak = shm_key;
         data->chatvlakno[data->pocVlakien-1]->klienti[0] = cisloKl;
         data->chatvlakno[data->pocVlakien-1]->klienti[1] = cisloKlToAdd;
-        //data->chatvlakno[data->pocVlakien-1] = &vlak;
         char sprava[256];
-        //strcpy(data->chatvlakno[0]->spravy[data->chatvlakno[0]->pocetSprav],sprava);
     }
     else if(buffer[0] == '8') { //nastavenie pridanie klienta
         write(newsockfd, buffer,strlen(buffer)); // neviem naco

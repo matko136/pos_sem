@@ -38,7 +38,6 @@ pthread_t * prijSprav;
 struct sockaddr_in serv_addr;
 struct sockaddr_in serv_addrStart;
 char prezyvka[256];
-//int pocetVlakien = 0;
 KLIENT *klData;
 int * makeNewChatIds;
 int * addToChatIds;
@@ -75,11 +74,6 @@ char* writeAndReadSocket(char* input, int serv_address, bool connectS, int* dest
     if(serv_address != 1) {
         int n = write(sockfd, buffer, strlen(buffer));
     }
-    /*if (n < 0)
-    {
-        perror("Error writing to socket");
-        return 5;
-    }*/
     bzero(buffer,256);
     int n = read(sockfd, buffer, 255);
     if (n < 0)
@@ -123,19 +117,6 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             bzero(buffer, 256);
             strcpy(buffer, writeAndReadSocket(heslo,2, false, sockfd));
 
-            /*bzero(buffer, 256);
-            strcpy(buffer, "1");
-            n = write(sockfd, buffer, strlen(buffer));
-            n = read(sockfd, buffer, 255);
-            bzero(buffer, 256);
-            strcpy(buffer, meno);
-            n = write(sockfd, buffer, strlen(buffer));
-            n = read(sockfd, buffer, 255);
-            bzero(buffer, 256);
-            strcpy(buffer, heslo);
-            n = write(sockfd, buffer, strlen(buffer));
-            bzero(buffer, 256);
-            n = read(sockfd, buffer, 255);*/
             if (strcmp(buffer,"-1") == 0) {
                 printf("Zle zadane meno alebo heslo:\n");
             } else {
@@ -298,10 +279,10 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
                     return 11;
                 }
                 CHATVLAKNOZDIEL* vlZdiel = (CHATVLAKNOZDIEL*)addr;
+
                 klData->chatvlakno[klData->pocetVlakien++] = vlZdiel;
             }
             bzero(vlakno,256);
-            //strcpy(vlakno, writeAndReadSocket(buffer, 2));
         }
         if(count == 0) {
             printf("Ziadne vlakna neboli najdene\n");
@@ -337,7 +318,6 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             printf("%d. %s", count, prezyvkaa);
             ids[count-1] = atoi(cisloKli);
             bzero(cisloKli,256);
-            //strcpy(cisloKli, writeAndReadSocket(buffer, 2));
         }
         if(count == 0) {
             ids[0] = 0;
@@ -386,7 +366,6 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         int* sockfd = malloc(sizeof(int));
         writeAndReadSocket(buffer,2,true, sockfd); // na server '8'
 
-        //int klientId = cisloKl;
         int klientToAdd = cisloSpr;
 
         bzero(buffer, 256);
