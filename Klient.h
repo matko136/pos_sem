@@ -34,11 +34,11 @@ typedef struct klient {
     int aktChat;
 } KLIENT;
 
-pthread_t prijSprav;
+pthread_t * prijSprav;
 struct sockaddr_in serv_addr;
 struct sockaddr_in serv_addrStart;
 char prezyvka[256];
-int pocetVlakien;
+//int pocetVlakien = 0;
 KLIENT *klData;
 int * makeNewChatIds;
 int * addToChatIds;
@@ -280,7 +280,7 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             strcpy(key, writeAndReadSocket(buffer, 2,false, sockfd));
             printf("%d. %s", count+1, vlakno);
             count++;
-            if(count > pocetVlakien) {
+            if(count > klData->pocetVlakien) {
                 printf("Reg vlakno\n");
                 const key_t shm_key = (key_t)atoi(key);
                 int shmid = shmget(shm_key, sizeof(CHATVLAKNOZDIEL), 0666);
@@ -298,7 +298,7 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
                     return 11;
                 }
                 CHATVLAKNOZDIEL* vlZdiel = (CHATVLAKNOZDIEL*)addr;
-                klData->chatvlakno[pocetVlakien++] = vlZdiel;
+                klData->chatvlakno[klData->pocetVlakien++] = vlZdiel;
             }
             bzero(vlakno,256);
             //strcpy(vlakno, writeAndReadSocket(buffer, 2));
