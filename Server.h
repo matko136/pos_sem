@@ -60,7 +60,9 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         read(newsockfd, heslo, 255);
         bool success = false;
         char prezyvka[256];
+        bzero(prezyvka, 256);
         char hsl[256];
+        bzero(hsl, 256);
         for(int i = 0; i < data->pocetKlientov; i++) {
             strcpy(prezyvka, data->prezyvky[i]);
             if (strcmp(data->prezyvky[i], meno) == 0) {
@@ -80,9 +82,11 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         char meno[256];
         char heslo[256];
         write(newsockfd, buffer,strlen(buffer));
+        bzero(meno, 256);
         read(newsockfd, meno, 255);
         usleep(100);
         write(newsockfd, buffer,strlen(buffer));
+        bzero(heslo, 256);
         read(newsockfd, heslo, 255);
         bool success = true;
         ret = 0;
@@ -101,7 +105,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         }
         bzero(buffer, 256);
         sprintf(buffer, "%d", ret);
-        printf("%s\n", buffer);
         write(newsockfd, buffer,strlen(buffer));
     } else if(buffer[0] == '3') {
         char sprava[256];
@@ -141,7 +144,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         cisloSpravy = atoi(buffer);
         bzero(buffer, 256);
         strcpy(buffer, data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1]);
-        printf("%s\n",buffer);
         write(newsockfd, buffer,strlen(buffer));
         read(newsockfd, buffer, 255);
         bzero(buffer, 256);

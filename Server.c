@@ -48,7 +48,6 @@ void* obsluhujChat(void* arg) {
         while(zdiel->nova == 0) {
             pthread_cond_wait(&zdiel->odoslana, &zdiel->mutex);
         }
-        printf("Ciel\n");
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
         if (newsockfd < 0)
         {
