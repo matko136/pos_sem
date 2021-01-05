@@ -12,7 +12,7 @@
 #include <sys/shm.h>
 #include <netdb.h>
 #include "Klient.h"
-#include "RSA.h"
+
 
 void *prijimajSpravy(void *arg) {
     KLIENT *data = (KLIENT *) arg;
@@ -134,6 +134,7 @@ void *odosielajSpravu(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
+    initFirst1000Primes();
     int n;
 
     char buffer[256];
@@ -210,6 +211,9 @@ int main(int argc, char *argv[]) {
     pthread_t klient;
     pthread_t  prijimanieSprav;
     int pocetNacSprav[20];
+    for(int i = 0; i < 20; i++) {
+        pocetNacSprav[i] = 0;
+    }
     CHATVLAKNOZDIEL vlakna[20];
     KLIENT klientDat = {cisloKlienta, pocetNacSprav, pass, 0, vlakna, zdiel, 0};
     klData = &klientDat;

@@ -4,6 +4,7 @@
 
 #ifndef CHATAPP_SERVER_H
 #define CHATAPP_SERVER_H
+#include "RSA.h"
 typedef struct zdiel {
     pthread_mutex_t mutex;
     pthread_cond_t odoslana;

@@ -13,7 +13,7 @@
 #include <netdb.h>
 #include <limits.h>
 #include "Server.h"
-#include "RSA.h"
+
 pthread_t serv;
 pthread_t servPrijmKlien;
 key_t shm_key_glob;
@@ -33,7 +33,7 @@ void* skonci() {
 }
 
 void* obsluhujChat(void* arg) {
-    servPrijmKlien = pthread_self();
+    serv = pthread_self();
     SERVER* data = (SERVER*)arg;
     ZDIEL*
             zdiel = data->zdiel;
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
 
 
     CHATVLAKNO ** chatVlakna = (CHATVLAKNO **)malloc(10*sizeof(CHATVLAKNO *));
-    char ** spravyPole[1000];
+    char ** spravyPole[10];
     for(int i = 0; i < 10; i++) {
         chatVlakna[i] = (CHATVLAKNO *)malloc(sizeof(CHATVLAKNO));
         char ** spravy = (char **)malloc(1000*sizeof(char *));
@@ -220,6 +220,7 @@ int main(int argc, char *argv[]) {
         int * klientSpr = (int *)malloc(1000*sizeof(int));
         int * klienti = (int *)malloc(10*sizeof(int));
         char * nazov = (char *)malloc(256*sizeof(char));
+        spravyPole[i] = spravy;
         chatVlakna[i]->spravy = spravy;
         chatVlakna[i]->klientSprav = klientSpr;
         chatVlakna[i]->nazov = nazov;
@@ -231,9 +232,9 @@ int main(int argc, char *argv[]) {
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
     pthread_create(&ukonci, NULL, &skonci, NULL);
-    pthread_join(server, NULL);
+    //pthread_join(server, NULL);
     pthread_join(ukonci, NULL);
-    pthread_join(servPrijmKlient, NULL);
+    //pthread_join(servPrijmKlient, NULL);
 
     pthread_cond_destroy(&zdielane->odoslana);
     pthread_cond_destroy(&zdielane->prijata);
@@ -255,7 +256,7 @@ int main(int argc, char *argv[]) {
     free(hesla);
     for(int i = 0; i < 10; i++) {
         for(int j = 0; j < 1000; j++) {
-            free(spravyPole[i][j]);
+            free((spravyPole[i])[j]);
         }
         free(spravyPole[i]);
     }
@@ -266,6 +267,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     close(sockfd);
+
 
 
     return 0;

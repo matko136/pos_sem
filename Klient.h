@@ -5,7 +5,7 @@
 #ifndef CHATAPP_KLIENT_H
 #define CHATAPP_KLIENT_H
 
-
+#include "RSA.h"
 
 
 typedef struct zdiel {
@@ -84,6 +84,14 @@ char* writeAndReadSocket(char* input, int serv_address, bool connectS, int* dest
     return buffer;
 }
 
+bool strcmpare(char * cmp, char* get, char * wrt, int * sockfd) {
+    char * prijate = writeAndReadSocket(wrt, 2,false, sockfd);
+    strcpy(get, prijate);
+    bool ret = strcmp(cmp, prijate) == 0;
+    free(prijate);
+    return ret;
+}
+
 int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, int cisloVlak, int cisloSpr) {
     char buffer[256];
     char pass[256];
@@ -110,13 +118,12 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             pthread_mutex_unlock(&zdiel->mutex);
             pthread_cond_signal(&zdiel->odoslana);
             int* sockfd = malloc(sizeof(int));
-            writeAndReadSocket(buffer,2,true, sockfd);
-
-            writeAndReadSocket(meno,2, false, sockfd);
-
+            free(writeAndReadSocket(buffer,2,true, sockfd));
+            free(writeAndReadSocket(meno,2, false, sockfd));
             bzero(buffer, 256);
-            strcpy(buffer, writeAndReadSocket(heslo,2, false, sockfd));
-
+            char * ans = writeAndReadSocket(heslo,2, false, sockfd);
+            strcpy(buffer, ans);
+            free(ans);
             if (strcmp(buffer,"-1") == 0) {
                 printf("Zle zadane meno alebo heslo:\n");
             } else {
@@ -152,12 +159,14 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             pthread_cond_signal(&zdiel->odoslana);
 
             int* sockfd = malloc(sizeof(int));
-            writeAndReadSocket(buffer,2,true, sockfd);
+            free(writeAndReadSocket(buffer,2,true, sockfd));
 
-            writeAndReadSocket(meno,2,false, sockfd);
+            free(writeAndReadSocket(meno,2,false, sockfd));
 
             bzero(buffer, 256);
-            strcpy(buffer, writeAndReadSocket(heslo,2,false, sockfd));
+            char *ans  = writeAndReadSocket(heslo,2,false, sockfd);
+            strcpy(buffer, ans);
+            free(ans);
 
             if(strcmp(buffer,"-1") == 0) {
                 printf("Prezyvka uz pouzita, zadajte inu:\n");
@@ -182,19 +191,19 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd);
+        free(writeAndReadSocket(buffer,2,true, sockfd));
 
         bzero(buffer, 256);
         strcpy(buffer, sprava);
-        writeAndReadSocket(buffer, 2,false, sockfd);
+        free(writeAndReadSocket(buffer, 2,false, sockfd));
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloVlak);
-        writeAndReadSocket(buffer, 2,false, sockfd);
+        free(writeAndReadSocket(buffer, 2,false, sockfd));
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloKl);
-        writeAndReadSocket(buffer, 2,false, sockfd);
+        free(writeAndReadSocket(buffer, 2,false, sockfd));
         free(sockfd);
     } else if(poziadavka == 4) {
         char prezyvkaKlienSpr[256];
@@ -209,24 +218,27 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd);
+        free(writeAndReadSocket(buffer,2,true, sockfd));
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloVlak);
-        writeAndReadSocket(buffer, 2,false, sockfd);
+        free(writeAndReadSocket(buffer, 2,false, sockfd));
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloKl);
-        writeAndReadSocket(buffer, 2,false, sockfd);
+        free(writeAndReadSocket(buffer, 2,false, sockfd));
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloSpr);
         bzero(prezyvkaKlienSpr, 256);
-        strcpy(prezyvkaKlienSpr, writeAndReadSocket(buffer,2,false, sockfd));
-
+        char * ans = writeAndReadSocket(buffer,2,false, sockfd);
+        strcpy(prezyvkaKlienSpr, ans);
+        free(ans);
 
         bzero(sprava, 256);
-        strcpy(sprava, writeAndReadSocket(buffer,2,false, sockfd));
+        ans = writeAndReadSocket(buffer,2,false, sockfd);
+        strcpy(sprava, ans);
+        free(ans);
 
         if(strcmp(prezyvka,prezyvkaKlienSpr) == 0) {
             printf("Vy: %s\n", sprava);
@@ -247,22 +259,24 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd);
+        free(writeAndReadSocket(buffer,2,true, sockfd));
 
         int count = 0;
         char vlakno[256];
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloKl);
         bzero(vlakno,256);
-        writeAndReadSocket(buffer, 2,false, sockfd);
-        while(strcmp("-1",strcpy(vlakno, writeAndReadSocket(buffer, 2,false, sockfd))) != 0) {
+        free(writeAndReadSocket(buffer, 2,false, sockfd));
+        //bool strcmpare(char * cmp, char* get, char * wrt, int sockfd)
+        while(!strcmpare("-1", vlakno, buffer, sockfd)) {
             char key[256];
             bzero(key,256);
-            strcpy(key, writeAndReadSocket(buffer, 2,false, sockfd));
+            char * ans = writeAndReadSocket(buffer, 2,false, sockfd);
+            strcpy(key, ans);
+            free(ans);
             printf("%d. %s", count+1, vlakno);
             count++;
             if(count > klData->pocetVlakien) {
-                printf("Reg vlakno\n");
                 const key_t shm_key = (key_t)atoi(key);
                 int shmid = shmget(shm_key, sizeof(CHATVLAKNOZDIEL), 0666);
                 if(shmid < 0)
@@ -301,20 +315,22 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd);
+        free(writeAndReadSocket(buffer,2,true, sockfd));
 
         char cisloKli[256];
         int count = 0;
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloKl);
         bzero(cisloKli, 256);
-        writeAndReadSocket(buffer, 2, false, sockfd);
+        free(writeAndReadSocket(buffer, 2, false, sockfd));
         int ids[10];
-        while(strcmp("-1",strcpy(cisloKli, writeAndReadSocket(buffer, 2, false, sockfd)))) {
+        while(!strcmpare("-1", cisloKli, buffer, sockfd)) {
             count++;
             char prezyvkaa[256];
             bzero(prezyvkaa, 256);
-            strcpy(prezyvkaa, writeAndReadSocket(buffer, 2, false, sockfd));
+            char * ans = writeAndReadSocket(buffer, 2, false, sockfd);
+            strcpy(prezyvkaa, ans);
+            free(ans);
             printf("%d. %s", count, prezyvkaa);
             ids[count-1] = atoi(cisloKli);
             bzero(cisloKli,256);
@@ -337,7 +353,7 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd);
+        free(writeAndReadSocket(buffer,2,true, sockfd));
 
         int klientId = cisloKl;
         int klientToAdd = cisloSpr;
@@ -346,11 +362,11 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         strcpy(nazov, sprava);
         bzero(buffer, 256);
         sprintf(buffer,"%d", klientId);
-        writeAndReadSocket(buffer, 2, false, sockfd);
+        free(writeAndReadSocket(buffer, 2, false, sockfd));
         bzero(buffer, 256);
         sprintf(buffer,"%d", klientToAdd);
-        writeAndReadSocket(buffer, 2, false, sockfd);
-        writeAndReadSocket(nazov, 2, false, sockfd);
+        free(writeAndReadSocket(buffer, 2, false, sockfd));
+        free(writeAndReadSocket(nazov, 2, false, sockfd));
         free(sockfd);
         return 0;
     } else if(poziadavka == 8) {
@@ -364,17 +380,17 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd); // na server '8'
+        free(writeAndReadSocket(buffer,2,true, sockfd)); // na server '8'
 
         int klientToAdd = cisloSpr;
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", klientToAdd);
-        writeAndReadSocket(buffer, 2, false, sockfd);
+        free(writeAndReadSocket(buffer, 2, false, sockfd));
 
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloVlak);
-        writeAndReadSocket(buffer, 2, false, sockfd);
+        free(writeAndReadSocket(buffer, 2, false, sockfd));
 
         free(sockfd);
         return 0;
@@ -391,21 +407,23 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        writeAndReadSocket(buffer,2,true, sockfd);
+        free(writeAndReadSocket(buffer,2,true, sockfd));
         //////
 
         char cisloKli[256];
 
         bzero(buffer, 256);
         sprintf(buffer, "%d", cisloVlak); // odosielanie cislo vlakna
-        writeAndReadSocket(buffer, 2, false, sockfd);
+        free(writeAndReadSocket(buffer, 2, false, sockfd));
 
         int ids[10];
-        while(strcmp("-1",strcpy(cisloKli, writeAndReadSocket(buffer, 2, false, sockfd)))) {
+        while(!strcmpare("-1", cisloKli, buffer, sockfd)) {
             count++;
             char prezyvkaa[256];
             bzero(prezyvkaa, 256);
-            strcpy(prezyvkaa, writeAndReadSocket(buffer, 2, false, sockfd));
+            char * ans = writeAndReadSocket(buffer, 2, false, sockfd);
+            strcpy(prezyvkaa, ans);
+            free(ans);
             printf("%d. %s", count, prezyvkaa);
             ids[count-1] = atoi(cisloKli);
             bzero(cisloKli,256);
