@@ -44,6 +44,63 @@ typedef struct server {
     int pocVlakien;
 } SERVER;
 
+void zmenRiadok(char * subor, int cisloRiadku, char * novyText) {
+    FILE * fptr;
+    fptr = fopen(subor, "r");
+    FILE * fptrTemp;
+    fptrTemp = fopen("temporary.txt", "w");
+    char buffer[256];
+    bzero(buffer, 256);
+    int count = 0;
+    while ((fgets(buffer, 256, fptr))) {
+        count++;
+        if(count == cisloRiadku)
+            fputs(novyText, fptrTemp);
+        else
+            fputs(buffer, fptrTemp);
+    }
+    fclose(fptr);
+    fclose(fptrTemp);
+    remove(subor);
+    rename("temporary.txt", subor);
+}
+
+key_t vytvorZdielaneVlakno(int cisloVlakna, char * nazov, int pocetSprav) {
+    const key_t shm_key = (key_t)rand()%INT_MAX;
+    int shmid = shmget(shm_key, sizeof(CHATVLAKNOZDIEL), 0666|IPC_CREAT|IPC_EXCL);
+
+    if(shmid < 0)
+    {
+        perror("Failed to create shared memory block:");
+        return 10;
+    }
+    void* addr = shmat(shmid, NULL, 0);
+    if(addr == NULL)
+    {
+        perror("Failed to attach shared memory block:");
+        return 11;
+    }
+    CHATVLAKNOZDIEL* zdielVlak = (CHATVLAKNOZDIEL*)addr;
+    zdielVlak->nazov = nazov;
+    //strcpy(zdielVlak->nazov, nazov);
+    zdielVlak->pocetSprav = pocetSprav;
+    zdielVlak->cislo = cisloVlakna;
+    pthread_mutex_t mut;
+    pthread_cond_t odoslana;
+    zdielVlak->mutex = mut;
+    zdielVlak->odoslana = odoslana;
+
+    pthread_mutexattr_t mutattr;
+    pthread_mutexattr_init(&mutattr);
+    pthread_mutexattr_setpshared(&mutattr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&zdielVlak->mutex, &mutattr);
+
+    pthread_condattr_t condattr;
+    pthread_condattr_init(&condattr);
+    pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&zdielVlak->odoslana, &condattr);
+    return shm_key;
+}
 
 int obsluhujKlienta(int newsockfd, SERVER* data) {
     char buffer[256];
@@ -101,6 +158,18 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
             strcpy(data->prezyvky[data->pocetKlientov], meno);
             strcpy(data->hesla[data->pocetKlientov++], heslo);
             ret = data->pocetKlientov;
+            char newLine[256];
+            bzero(newLine, 256);
+            sprintf(newLine, "%d\n", data->pocetKlientov);
+            zmenRiadok("serv_ud.txt", 3, newLine);
+            FILE * fptr;
+            fptr = fopen("serv_ud.txt", "a");
+            fprintf(fptr, "%s", data->prezyvky[data->pocetKlientov-1]);
+            fclose(fptr);
+            FILE * fptr2;
+            fptr2 = fopen("serv_hsl.txt", "a");
+            fprintf(fptr2, "%s", data->hesla[data->pocetKlientov-1]);
+            fclose(fptr2);
         } else {
             ret = -1;
         }
@@ -127,6 +196,20 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         char addr2[256];
         strcpy(data->chatvlakno[cisloVlakna-1]->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav],sprava);
         data->chatvlakno[cisloVlakna-1]->klientSprav[data->chatvlakno[cisloVlakna-1]->pocetSprav++] = cisloKlienta;
+
+        FILE * fptr;
+        char filename[256];
+        bzero(filename, 256);
+        sprintf(filename,"%d", cisloVlakna);
+        strcat(filename,"vlak_spravy.txt");
+        char newLine[256];
+        bzero(newLine, 256);
+        sprintf(newLine, "%d\n", data->chatvlakno[cisloVlakna-1]->pocetSprav);
+        zmenRiadok(filename, 2, newLine);
+        fptr = fopen(filename, "a");
+        fprintf(fptr, "%s", data->chatvlakno[cisloVlakna-1]->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav-1]);
+        fprintf(fptr, "%d\n", data->chatvlakno[cisloVlakna-1]->klientSprav[data->chatvlakno[cisloVlakna-1]->pocetSprav-1]);
+        fclose(fptr);
     } else if(buffer[0] == '4') {
         int cisloVlakna = 0;
         int cisloKlienta = 0;
@@ -216,46 +299,44 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         bzero(nazov, 256);
         read(newsockfd, nazov, 255);
         write(newsockfd, buffer,strlen(buffer));
-        const key_t shm_key = (key_t)rand()%INT_MAX;
-        int shmid = shmget(shm_key, sizeof(CHATVLAKNOZDIEL), 0666|IPC_CREAT|IPC_EXCL);
 
-        if(shmid < 0)
-        {
-            perror("Failed to create shared memory block:");
-            return 10;
-        }
-        void* addr = shmat(shmid, NULL, 0);
-        if(addr == NULL)
-        {
-            perror("Failed to attach shared memory block:");
-            return 11;
-        }
-        CHATVLAKNOZDIEL* zdielVlak = (CHATVLAKNOZDIEL*)addr;
-        zdielVlak->nazov = nazov;
-        zdielVlak->pocetSprav = 0;
-        zdielVlak->cislo = ++data->pocVlakien;
-        pthread_mutex_t mut;
-        pthread_cond_t odoslana;
-        zdielVlak->mutex = mut;
-        zdielVlak->odoslana = odoslana;
-
-        pthread_mutexattr_t mutattr;
-        pthread_mutexattr_init(&mutattr);
-        pthread_mutexattr_setpshared(&mutattr, PTHREAD_PROCESS_SHARED);
-        pthread_mutex_init(&zdielVlak->mutex, &mutattr);
-
-        pthread_condattr_t condattr;
-        pthread_condattr_init(&condattr);
-        pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
-        pthread_cond_init(&zdielVlak->odoslana, &condattr);
-
+        key_t shm_key = vytvorZdielaneVlakno(++data->pocVlakien, nazov, 0);
         data->chatvlakno[data->pocVlakien-1]->cislo = data->pocVlakien;
         strcpy(data->chatvlakno[data->pocVlakien-1]->nazov, nazov);
         data->chatvlakno[data->pocVlakien-1]->pocetKlientov = 2;
         data->chatvlakno[data->pocVlakien-1]->shm_key_zdiel_Vlak = shm_key;
         data->chatvlakno[data->pocVlakien-1]->klienti[0] = cisloKl;
         data->chatvlakno[data->pocVlakien-1]->klienti[1] = cisloKlToAdd;
-        char sprava[256];
+        FILE * fptr;
+        char filename[256];
+        bzero(filename, 256);
+        sprintf(filename,"%d", data->pocVlakien);
+        strcat(filename,"vlak_ud.txt");
+        fptr = fopen(filename, "w");
+        char line[256];
+        bzero(line, 256);
+        strcpy(line, "----Vlakno---udaje---klienti---");
+        fprintf(fptr,"%s\n", line);
+        fprintf(fptr, "%d\n", data->pocVlakien);
+        fprintf(fptr, "%s", nazov);
+        fprintf(fptr, "%d\n", data->chatvlakno[data->pocVlakien-1]->pocetKlientov);
+        fprintf(fptr, "%d\n", data->chatvlakno[data->pocVlakien-1]->klienti[0]);
+        fprintf(fptr, "%d\n", data->chatvlakno[data->pocVlakien-1]->klienti[1]);
+        fclose(fptr);
+        FILE * fptr2;
+        bzero(filename, 256);
+        sprintf(filename,"%d", data->pocVlakien);
+        strcat(filename,"vlak_spravy.txt");
+        fptr2 = fopen(filename, "w");
+        bzero(line, 256);
+        strcpy(line, "---Vlakno---spravy---klienti---");
+        fprintf(fptr2,"%s\n", line);
+        fprintf(fptr2, "%d\n", 0);
+        fclose(fptr2);
+        char newLine[256];
+        bzero(newLine, 256);
+        sprintf(newLine, "%d\n", data->pocVlakien);
+        zmenRiadok("serv_ud.txt", 2, newLine);
     }
     else if(buffer[0] == '8') { //nastavenie pridanie klienta
         write(newsockfd, buffer,strlen(buffer)); // neviem naco
@@ -275,11 +356,19 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
 
         write(newsockfd, buffer,strlen(buffer));
 
-
-
-
         data->chatvlakno[cisVlak-1]->klienti[data->chatvlakno[cisVlak-1]->pocetKlientov++] = cisloKlToAdd;
-
+        FILE * fptr;
+        char filename[256];
+        bzero(filename, 256);
+        sprintf(filename,"%d", cisVlak);
+        strcat(filename,"vlak_ud.txt");
+        char newLine[256];
+        bzero(newLine, 256);
+        sprintf(newLine, "%d\n", data->chatvlakno[cisVlak-1]->pocetKlientov);
+        zmenRiadok(filename, 4, newLine);
+        fptr = fopen(filename, "a");
+        fprintf(fptr, "%d\n", cisloKlToAdd);
+        fclose(fptr);
     }
     else if(buffer[0] == '9') {
         write(newsockfd, buffer,strlen(buffer));

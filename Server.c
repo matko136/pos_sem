@@ -13,7 +13,7 @@
 #include <netdb.h>
 #include <limits.h>
 #include "Server.h"
-
+#include "RSA.h"
 pthread_t serv;
 pthread_t servPrijmKlien;
 key_t shm_key_glob;
@@ -226,9 +226,94 @@ int main(int argc, char *argv[]) {
         chatVlakna[i]->nazov = nazov;
         chatVlakna[i]->klienti = klienti;
         chatVlakna[i]->pocetSprav = 0;
+        chatVlakna[i]->shm_key_zdiel_Vlak = 0;
     }
 
     SERVER serv = {0, klientiId, prezyvky, hesla, sockfd, sockPrip, zdielane, chatVlakna, 0};
+
+    int num;
+    char line[256];
+    bzero(line, 256);
+    FILE *fptr;
+    fptr = fopen("serv_ud.txt","r");
+    if(fptr != NULL) {
+        fscanf(fptr,"%s", &line);
+        fscanf(fptr, "%d", &num);
+        serv.pocVlakien = num;
+        fscanf(fptr, "%d", &num);
+        serv.pocetKlientov = num;
+        FILE *fptr2;
+        fptr2 = fopen("serv_hsl.txt","r");
+        fscanf(fptr2,"%s", &line);
+        for(int i = 0; i < serv.pocetKlientov; i++) {
+            bzero(line, 256);
+            fscanf(fptr,"%s", &line);
+            strcat(line, "\n");
+            strcpy(serv.prezyvky[i], line);
+            bzero(line, 256);
+            fscanf(fptr2, "%s", &line);
+            strcat(line, "\n");
+            strcpy(serv.hesla[i], line);
+        }
+        fclose(fptr);
+        fclose(fptr2);
+
+        for(int i = 0; i < serv.pocVlakien; i++) {
+            FILE * fptr3;
+            char filename[256];
+            bzero(filename, 256);
+            sprintf(filename,"%d", i+1);
+            strcat(filename,"vlak_ud.txt");
+            fptr3 = fopen(filename, "r");
+            fscanf(fptr3,"%s", &line);
+            fscanf(fptr3, "%d", &num);
+            serv.chatvlakno[i]->cislo = num;
+            bzero(line, 256);
+            fscanf(fptr3,"%s", &line);
+            strcat(line, "\n");
+            strcpy(serv.chatvlakno[i]->nazov, line);
+            fscanf(fptr3, "%d", &num);
+            serv.chatvlakno[i]->pocetKlientov = num;
+            for(int j = 0; j < serv.chatvlakno[i]->pocetKlientov; j++) {
+                fscanf(fptr3, "%d", &num);
+                serv.chatvlakno[i]->klienti[j] = num;
+            }
+            fclose(fptr3);
+            FILE * fptr4;
+            bzero(filename, 256);
+            sprintf(filename,"%d", i+1);
+            strcat(filename,"vlak_spravy.txt");
+            fptr4 = fopen(filename, "r");
+            fscanf(fptr4,"%s", &line);
+            fscanf(fptr4, "%d\n", &num);
+            serv.chatvlakno[i]->pocetSprav = num;
+            for(int j = 0; j < serv.chatvlakno[i]->pocetSprav; j++) {
+                bzero(line, 256);
+                fgets(line, 256, fptr4);
+                //fscanf(fptr4,"%s", &line);
+                strcpy(serv.chatvlakno[i]->spravy[j], line);
+                fscanf(fptr4, "%d\n", &num);
+                serv.chatvlakno[i]->klientSprav[j] = num;
+            }
+            serv.chatvlakno[i]->shm_key_zdiel_Vlak = vytvorZdielaneVlakno(serv.chatvlakno[i]->cislo, serv.chatvlakno[i]->nazov, serv.chatvlakno[i]->pocetSprav);
+            fclose(fptr4);
+        }
+    } else {
+        fptr = fopen("serv_ud.txt","w");
+        bzero(line, 256);
+        strcpy(line, "---Server---udaje---prezyvky---");
+        fprintf(fptr,"%s\n", line);
+        fprintf(fptr,"%d\n", 0);
+        fprintf(fptr,"%d\n", 0);
+        fclose(fptr);
+        FILE *fptr2;
+        fptr2 = fopen("serv_hsl.txt","w");
+        bzero(line, 256);
+        strcpy(line, "---Server---hesla---");
+        fprintf(fptr2,"%s\n", line);
+        fclose(fptr2);
+    }
+
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
     pthread_create(&ukonci, NULL, &skonci, NULL);
