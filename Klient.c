@@ -13,7 +13,7 @@
 #include <netdb.h>
 #include "Klient.h"
 
-
+bool exitKli = false;
 void *prijimajSpravy(void *arg) {
     KLIENT *data = (KLIENT *) arg;
     ZDIEL *zdiel = data->zdiel;
@@ -26,7 +26,10 @@ void *prijimajSpravy(void *arg) {
                 data->pocetNacitSprav[data->aktChat - 1]++;
             }
         }
-        sleep(1);
+        if(exitKli) {
+            pthread_exit(NULL);
+        }
+        usleep(100000);
     }
 }
 
@@ -41,9 +44,9 @@ void *odosielajSpravu(void *arg) {
         bzero(buffer, 256);
         fgets(buffer, 255, stdin);
         char s[7];
-        memcpy(s, buffer, 5);
+        memcpy(s, buffer, 6);
 
-        if (strcmp(s, ";nast") == 0) {
+        if (strcmp(s, ";nast\n") == 0) {
             if (data->aktChat == 0) {
                 printf("Pre nastavenie chatu vojdite do chatu\n");
             } else {
@@ -75,7 +78,7 @@ void *odosielajSpravu(void *arg) {
                 }
             }
 
-        } else if (strcmp(s, ";menu") == 0) {
+        } else if (strcmp(s, ";menu\n") == 0) {
 
             data->aktChat = 0;
             printf("Zadajte cislo volby ktoru chcete vykonat:\n");
@@ -115,11 +118,11 @@ void *odosielajSpravu(void *arg) {
                     odosliPoziadavku(7, zdiel, buffer, data->cisloKlient, 0, makeNewChatIds[vybrCislo - 1]);
                 }
             } else {
-                pthread_cancel(prijSprav);
+                exitKli = true;
                 pthread_exit(NULL);
             }
         } else if (strcmp(s, ";odist") == 0) {
-            pthread_cancel(prijSprav);
+            exitKli = true;
             pthread_exit(NULL);
         } else {
             if (data->aktChat != 0) {
@@ -217,9 +220,11 @@ int main(int argc, char *argv[]) {
     CHATVLAKNOZDIEL vlakna[20];
     KLIENT klientDat = {cisloKlienta, pocetNacSprav, pass, 0, vlakna, zdiel, 0};
     klData = &klientDat;
-    pthread_create(&klient, NULL, &odosielajSpravu, &klientDat);
     pthread_create(&prijimanieSprav, NULL, &prijimajSpravy, &klientDat);
+    pthread_create(&klient, NULL, &odosielajSpravu, &klientDat);
     pthread_join(klient, NULL);
+    pthread_join(prijimanieSprav, NULL);
+
     return 0;
 }
 

@@ -19,6 +19,8 @@ typedef struct zdiel {
 typedef struct chatVlaknoZdiel {
     pthread_mutex_t mutex;
     pthread_cond_t odoslana;
+    pthread_mutexattr_t mutat;
+    pthread_condattr_t condat;
     int cislo;
     char* nazov;
     int pocetSprav;

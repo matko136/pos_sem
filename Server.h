@@ -16,6 +16,8 @@ typedef struct zdiel {
 typedef struct chatVlaknoZdiel {
     pthread_mutex_t mutex;
     pthread_cond_t odoslana;
+    pthread_mutexattr_t mutat;
+    pthread_condattr_t condat;
     int cislo;
     char* nazov;
     int pocetSprav;
@@ -91,14 +93,16 @@ key_t vytvorZdielaneVlakno(int cisloVlakna, char * nazov, int pocetSprav) {
     zdielVlak->odoslana = odoslana;
 
     pthread_mutexattr_t mutattr;
-    pthread_mutexattr_init(&mutattr);
-    pthread_mutexattr_setpshared(&mutattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&zdielVlak->mutex, &mutattr);
+    zdielVlak->mutat = mutattr;
+    pthread_mutexattr_init(&zdielVlak->mutat);
+    pthread_mutexattr_setpshared(&zdielVlak->mutat, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&zdielVlak->mutex, &zdielVlak->mutat);
 
     pthread_condattr_t condattr;
-    pthread_condattr_init(&condattr);
-    pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&zdielVlak->odoslana, &condattr);
+    zdielVlak->condat = condattr;
+    pthread_condattr_init(&zdielVlak->condat);
+    pthread_condattr_setpshared(&zdielVlak->condat, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&zdielVlak->odoslana, &zdielVlak->condat);
     return shm_key;
 }
 

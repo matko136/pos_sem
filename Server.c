@@ -317,14 +317,43 @@ int main(int argc, char *argv[]) {
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
     pthread_create(&ukonci, NULL, &skonci, NULL);
-    //pthread_join(server, NULL);
+    pthread_join(server, NULL);
     pthread_join(ukonci, NULL);
-    //pthread_join(servPrijmKlient, NULL);
+    pthread_join(servPrijmKlient, NULL);
 
     pthread_cond_destroy(&zdielane->odoslana);
     pthread_cond_destroy(&zdielane->prijata);
     pthread_cond_destroy(&zdielane->aktualizSpravy);
     pthread_mutex_destroy(&zdielane->mutex);
+
+    pthread_mutexattr_destroy(&mutattr);
+    pthread_condattr_destroy(&condattr1);
+    pthread_condattr_destroy(&condattr2);
+    pthread_condattr_destroy(&condattr3);
+
+    for(int i = 0; i < 10; i++) {
+        const key_t zdielKey = serv.chatvlakno[i]->shm_key_zdiel_Vlak;
+        int shmid = shmget(zdielKey, sizeof(CHATVLAKNOZDIEL), 0666);
+        if(shmid < 0)
+        {
+            perror("Failed to open shared memory block:");
+            return 10;
+        }
+
+        void* addr = shmat(shmid, NULL, 0);
+
+        if(addr == NULL)
+        {
+        {
+            perror("Failed to attach shared memory block:");
+            return 11;
+        }
+        CHATVLAKNOZDIEL* vlZdiel = (CHATVLAKNOZDIEL*)addr;
+        pthread_mutex_destroy(&vlZdiel->mutex);
+        pthread_cond_destroy(&vlZdiel->odoslana);
+        pthread_mutexattr_destroy(&vlZdiel->mutat);
+        pthread_condattr_destroy(&vlZdiel->condat);
+    }
 
     for(int i = 0; i < 10 ; i++) {
         free(chatVlakna[i]->klienti);
