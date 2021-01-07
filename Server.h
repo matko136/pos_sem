@@ -267,28 +267,87 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         fprintf(fptr, "%d\n", data->chatvlakno[cisloVlakna-1]->klientSprav[data->chatvlakno[cisloVlakna-1]->pocetSprav-1]);
         fclose(fptr);
     } else if(buffer[0] == '4') {
+
+
+
+
+
         int cisloVlakna = 0;
         int cisloKlienta = 0;
         int cisloSpravy = 0;
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
-        cisloVlakna = atoi(buffer);
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
-        cisloKlienta = atoi(buffer);
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
-        cisloSpravy = atoi(buffer);
-        bzero(buffer, 256);
-        strcpy(buffer, data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1]);
-        write(newsockfd, buffer,strlen(buffer));
-        read(newsockfd, buffer, 255);
+        write(newsockfd, buffer,strlen(buffer)); /// potvrdenie poziadavky
+
+        //generovanei klucov
+        unsigned long long int * genKeys = generujKluceRSA();
+        read(newsockfd, buffer,255); ///
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+        read(newsockfd, buffer,255); ///
+
+        //citanie cisVlakna
+        unsigned long long int cisloVlakZak[256];
+        read(newsockfd, cisloVlakZak[0], 256 * sizeof(unsigned long long int));
+        char * tempCisVlak = desifruj(cisloVlakZak[0], genKeys[2], genKeys[1]);
+        cisloVlakna = atoi(tempCisVlak);
+        free(tempCisVlak);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+        free(genKeys);
+
+        //cisloSpravy
+        genKeys = generujKluceRSA();
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+        unsigned long long int sifraCisloSpravy[256];
+        read(newsockfd, sifraCisloSpravy[0], 256 *  sizeof(unsigned long long int));
+        char * tempCisSprav = desifruj(sifraCisloSpravy[0], genKeys[2], genKeys[1]);
+        cisloVlakna = atoi(tempCisSprav);
+        free(tempCisSprav);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int));///
+        free(genKeys);
+
+
+        //odoslanie spravy
+        unsigned long long int keys[2];
+        int n = read(newsockfd, keys, sizeof(keys));
         bzero(buffer, 256);
         strcpy(buffer, data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy]);
-        write(newsockfd, buffer,strlen(buffer));
+        write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
+
+
+
+        //odoslanie prezyvky
+        n = read(newsockfd, keys, sizeof(keys));
+        bzero(buffer, 256);
+        strcpy(buffer, data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1]);
+        write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
+
+
+
+
+//        write(newsockfd, buffer,strlen(buffer));
+//        read(newsockfd, buffer, 255);
+//        bzero(buffer, 256);
+//        strcpy(buffer, data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy]);
+//        write(newsockfd, buffer,strlen(buffer));
+
+//        unsigned long long int keys[2];
+//        read(newsockfd, keys, sizeof(keys));
+//        write(newsockfd, modularPow((unsigned long long int)ret,keys[0],keys[1]), sizeof(unsigned long long int)); ///maybe treba premenu
+//
+//
+       // read(newsockfd, cisSpravy[0], sizeof(unsigned long long int));
+
+//        bzero(buffer, 256);
+//        read(newsockfd, buffer, 255);
+//        cisloVlakna = atoi(buffer);
+//        write(newsockfd, buffer,strlen(buffer));
+//        bzero(buffer, 256);
+//        read(newsockfd, buffer, 255);
+//        cisloKlienta = atoi(buffer);
+//        write(newsockfd, buffer,strlen(buffer));
+
+//        bzero(buffer, 256);
+//        read(newsockfd, buffer, 255);
+//        cisloSpravy = atoi(buffer);
+
     } else if(buffer[0] == '5') {
         write(newsockfd, buffer,strlen(buffer));
         int cisloKl = 0;

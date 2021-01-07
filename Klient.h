@@ -293,6 +293,10 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         free(cipher);
         free(sockfd);
     } else if(poziadavka == 4) {
+
+
+
+
         char prezyvkaKlienSpr[256];
         char sprava[256];
         bzero(buffer, 256);
@@ -305,27 +309,73 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_mutex_unlock(&zdiel->mutex);
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
-        free(writeAndReadSocket(buffer,2,true, sockfd));
 
-        bzero(buffer, 256);
-        sprintf(buffer,"%d", cisloVlak);
-        free(writeAndReadSocket(buffer, 2,false, sockfd));
+        free(writeAndReadSocket(buffer,2,true, sockfd)); /// poslanie poziadavky serveru a chceck
+        write(*sockfd, buffer,strlen(buffer)); ///
+        unsigned long long int keys[2];
+        int n = read(*sockfd, keys, sizeof(keys));
+        write(*sockfd, buffer,strlen(buffer)); ///
+        ///odoslanie cisloVlakna
 
-        bzero(buffer, 256);
-        sprintf(buffer,"%d", cisloKl);
-        free(writeAndReadSocket(buffer, 2,false, sockfd));
+        write(*sockfd, modularPow((unsigned long long int)cisloVlak,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
+        read(*sockfd, keys, sizeof(keys));
 
-        bzero(buffer, 256);
-        sprintf(buffer,"%d", cisloSpr);
-        bzero(prezyvkaKlienSpr, 256);
-        char * ans = writeAndReadSocket(buffer,2,false, sockfd);
-        strcpy(prezyvkaKlienSpr, ans);
-        free(ans);
+        ///cisSprav
+        n = read(*sockfd, keys, sizeof(keys));
+        write(*sockfd, modularPow((unsigned long long int)cisloSpr,keys[0],keys[1]), sizeof(unsigned long long int)); ///maybe treba premenu
+        n = read(*sockfd, keys, sizeof(keys));///
 
-        bzero(sprava, 256);
-        ans = writeAndReadSocket(buffer,2,false, sockfd);
-        strcpy(sprava, ans);
-        free(ans);
+        //prijatieSpravy
+        unsigned long long int * genKeys = generujKluceRSA();
+        write(*sockfd, genKeys, 2*sizeof(unsigned long long int));
+        unsigned long long int sifrSprava[256];
+        read(*sockfd, sifrSprava[0], 256 * sizeof(unsigned long long int));
+        char * tempPrijSprava = desifruj(sifrSprava[0], genKeys[2], genKeys[1]);
+        strcpy(sprava, tempPrijSprava);
+        free(tempPrijSprava);
+        free(genKeys);
+
+
+        //prijatiePrezyvky
+        genKeys = generujKluceRSA();
+        write(*sockfd, genKeys, 2*sizeof(unsigned long long int));
+        read(*sockfd, sifrSprava[0], 256 *  sizeof(unsigned long long int));
+        tempPrijSprava = desifruj(sifrSprava[0], genKeys[2], genKeys[1]);
+        strcpy(prezyvkaKlienSpr, tempPrijSprava);
+        free(tempPrijSprava);
+        free(genKeys);
+
+
+
+
+//        unsigned long long int * genKeys = generujKluceRSA();
+//        write(*sockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+//        unsigned long long int sifCisSprava[1];
+//        read(*sockfd, sifCisSprava[0], sizeof(unsigned long long int));
+//        char * tempCisSprava = desifruj(sifCisSprava[0], genKeys[2], genKeys[1]);
+//
+//        bzero(buffer, 256);
+//        sprintf(buffer,"%d", cisloVlak);
+//        free(writeAndReadSocket(buffer, 2,false, sockfd));
+//
+//        bzero(buffer, 256);
+//        sprintf(buffer,"%d", cisloKl);
+
+
+//
+//        free(writeAndReadSocket(buffer, 2,false, sockfd));
+//        bzero(buffer, 256);
+//        sprintf(buffer,"%d", cisloSpr);
+//        bzero(prezyvkaKlienSpr, 256);
+
+//        char * ans = writeAndReadSocket(buffer,2,false, sockfd);
+//        strcpy(prezyvkaKlienSpr, ans);
+//        free(ans);
+//
+//        bzero(sprava, 256);
+//        ans = writeAndReadSocket(buffer,2,false, sockfd);
+//        strcpy(sprava, ans);
+//        free(ans);
 
         if(strcmp(prezyvka,prezyvkaKlienSpr) == 0) {
             printf("Vy: %s\n", sprava);
@@ -335,6 +385,11 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         }
         free(sockfd);
         return 0;
+
+
+
+
+
     }else if(poziadavka == 5) {
         bzero(buffer, 256);
         strcpy(buffer, "5");
