@@ -162,6 +162,7 @@ unsigned long long int* generujKluceRSA() {
 
 unsigned long long int* zasifruj(char * mes, unsigned long long int e, unsigned long long int n) {
     unsigned long long int * cipher = malloc(256*sizeof(unsigned long long int));
+    bzero(cipher, 256*sizeof(unsigned long long int));
     for(int i = 0; i < 255; i++) {
         cipher[i] = modularPow((unsigned long long int)mes[i],e,n);
     }
@@ -170,6 +171,7 @@ unsigned long long int* zasifruj(char * mes, unsigned long long int e, unsigned 
 
 char * desifruj(unsigned long long int * mes, unsigned long long int d, unsigned long long int n) {
     char * decipher = malloc(256*sizeof(char));
+    bzero(decipher, 256);
     for(int i = 0; i < 255; i++) {
         decipher[i] = (char)modularPow((unsigned long long int)mes[i],d,n);
     }

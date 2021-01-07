@@ -17,14 +17,31 @@
 pthread_t serv;
 pthread_t servPrijmKlien;
 key_t shm_key_glob;
-void* skonci() {
+void* skonci(void * arg) {
+    SERVER* data = (SERVER*)arg;
     while(1) {
-        printf("Pre ukoncenie zadajte 1:");
+        printf("Pre ukoncenie zadajte '1':\n");
+        printf("Pre vypis klientov zadajte '2':\n");
+        printf("Vasa volba: \n");
         char buff[2];
         bzero(buff,1);
         fgets(buff, 2, stdin);
         if (buff[0] == '1') {
             break;
+        }
+
+        if (buff[0] == '2') {
+
+            if (data->pocetKlientov > 0) {
+                printf("-----===KLIENTI===-----\n");
+                for (int i = 0; i < data->pocetKlientov; i++) {
+                    printf("%d. %s", i + 1, data->prezyvky[i]);
+                }
+            } else
+            {
+                printf("Nie je zaregistrovany ziadny klient.\n");
+            }
+            printf("-----=============-----\n");
         }
     }
     pthread_cancel(serv);
@@ -316,7 +333,7 @@ int main(int argc, char *argv[]) {
 
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
-    pthread_create(&ukonci, NULL, &skonci, NULL);
+    pthread_create(&ukonci, NULL, &skonci, &serv);
     pthread_join(server, NULL);
     pthread_join(ukonci, NULL);
     pthread_join(servPrijmKlient, NULL);
