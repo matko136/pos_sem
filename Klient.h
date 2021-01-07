@@ -314,23 +314,28 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         write(*sockfd, buffer,strlen(buffer)); ///
         unsigned long long int keys[2];
         int n = read(*sockfd, keys, sizeof(keys));
-        write(*sockfd, buffer,strlen(buffer)); ///
+        //write(*sockfd, buffer,strlen(buffer)); ///
         ///odoslanie cisloVlakna
 
-        write(*sockfd, modularPow((unsigned long long int)cisloVlak,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
-        read(*sockfd, keys, sizeof(keys));
+        unsigned long long int returnCislo[1];
+        returnCislo[0] = modularPow((unsigned long long int)cisloVlak,keys[0],keys[1]);
+        write(*sockfd, returnCislo,sizeof(returnCislo));
+        //write(*sockfd, modularPow((unsigned long long int)cisloVlak,keys[0],keys[1]),  sizeof(unsigned long long int)); ///maybe treba premenu
+        //read(*sockfd, keys, sizeof(keys));
 
         ///cisSprav
         n = read(*sockfd, keys, sizeof(keys));
-        write(*sockfd, modularPow((unsigned long long int)cisloSpr,keys[0],keys[1]), sizeof(unsigned long long int)); ///maybe treba premenu
+        returnCislo[0] = modularPow((unsigned long long int)cisloSpr,keys[0],keys[1]);
+        write(*sockfd, returnCislo,sizeof(returnCislo));
+        //write(*sockfd, modularPow((unsigned long long int)cisloSpr,keys[0],keys[1]), sizeof(unsigned long long int)); ///maybe treba premenu
         n = read(*sockfd, keys, sizeof(keys));///
 
         //prijatieSpravy
         unsigned long long int * genKeys = generujKluceRSA();
         write(*sockfd, genKeys, 2*sizeof(unsigned long long int));
         unsigned long long int sifrSprava[256];
-        read(*sockfd, sifrSprava[0], 256 * sizeof(unsigned long long int));
-        char * tempPrijSprava = desifruj(sifrSprava[0], genKeys[2], genKeys[1]);
+        read(*sockfd, sifrSprava, 256 * sizeof(unsigned long long int));
+        char * tempPrijSprava = desifruj(sifrSprava, genKeys[2], genKeys[1]);
         strcpy(sprava, tempPrijSprava);
         free(tempPrijSprava);
         free(genKeys);
@@ -339,8 +344,8 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         //prijatiePrezyvky
         genKeys = generujKluceRSA();
         write(*sockfd, genKeys, 2*sizeof(unsigned long long int));
-        read(*sockfd, sifrSprava[0], 256 *  sizeof(unsigned long long int));
-        tempPrijSprava = desifruj(sifrSprava[0], genKeys[2], genKeys[1]);
+        read(*sockfd, sifrSprava, 256 *  sizeof(unsigned long long int));
+        tempPrijSprava = desifruj(sifrSprava, genKeys[2], genKeys[1]);
         strcpy(prezyvkaKlienSpr, tempPrijSprava);
         free(tempPrijSprava);
         free(genKeys);

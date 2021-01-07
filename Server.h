@@ -272,34 +272,36 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
 
 
 
-        int cisloVlakna = 0;
-        int cisloKlienta = 0;
-        int cisloSpravy = 0;
+        unsigned long long int cisloVlakna = 0;
+        unsigned long long int cisloKlienta = 0;
+        unsigned long long int cisloSpravy = 0;
         write(newsockfd, buffer,strlen(buffer)); /// potvrdenie poziadavky
 
         //generovanei klucov
         unsigned long long int * genKeys = generujKluceRSA();
         read(newsockfd, buffer,255); ///
         write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
-        read(newsockfd, buffer,255); ///
+        //read(newsockfd, buffer,255); ///
 
         //citanie cisVlakna
-        unsigned long long int cisloVlakZak[256];
-        read(newsockfd, cisloVlakZak[0], 256 * sizeof(unsigned long long int));
-        char * tempCisVlak = desifruj(cisloVlakZak[0], genKeys[2], genKeys[1]);
-        cisloVlakna = atoi(tempCisVlak);
-        free(tempCisVlak);
-        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+        unsigned long long int cisloVlakZak[1];
+        read(newsockfd, cisloVlakZak, sizeof(unsigned long long int));
+        cisloVlakna = modularPow((unsigned long long int)cisloVlakZak[0],genKeys[2],genKeys[1]);
+        //char * tempCisVlak = desifruj(cisloVlakZak, genKeys[2], genKeys[1]);
+        //cisloVlakna = atoi(tempCisVlak);
+        //free(tempCisVlak);
+        //write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
         free(genKeys);
 
         //cisloSpravy
         genKeys = generujKluceRSA();
         write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
-        unsigned long long int sifraCisloSpravy[256];
-        read(newsockfd, sifraCisloSpravy[0], 256 *  sizeof(unsigned long long int));
-        char * tempCisSprav = desifruj(sifraCisloSpravy[0], genKeys[2], genKeys[1]);
-        cisloVlakna = atoi(tempCisSprav);
-        free(tempCisSprav);
+        unsigned long long int sifraCisloSpravy[1];
+        read(newsockfd, sifraCisloSpravy,  sizeof(unsigned long long int));
+        cisloSpravy = modularPow((unsigned long long int)sifraCisloSpravy[0],genKeys[2],genKeys[1]);
+        //char * tempCisSprav = desifruj(sifraCisloSpravy[0], genKeys[2], genKeys[1]);
+        //cisloVlakna = atoi(tempCisSprav);
+        //free(tempCisSprav);
         write(newsockfd, genKeys, 2*sizeof(unsigned long long int));///
         free(genKeys);
 
@@ -307,17 +309,24 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         //odoslanie spravy
         unsigned long long int keys[2];
         int n = read(newsockfd, keys, sizeof(keys));
-        bzero(buffer, 256);
-        strcpy(buffer, data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy]);
-        write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
-
+        //bzero(buffer, 256);
+        //strcpy(buffer, data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy]);
+        //write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
+        //sifrujem spravu
+        unsigned long long int * cipher = zasifruj(data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy], keys[0], keys[1]);
+        //odoslanie zas spravy
+        write(newsockfd, cipher, 256*sizeof(unsigned long long int));
+        free(cipher);
 
 
         //odoslanie prezyvky
         n = read(newsockfd, keys, sizeof(keys));
         bzero(buffer, 256);
-        strcpy(buffer, data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1]);
-        write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
+        //strcpy(buffer, data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1]);
+        cipher = zasifruj(data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1], keys[0], keys[1]);
+        write(newsockfd, cipher, 256*sizeof(unsigned long long int));
+        free(cipher);
+        //write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
 
 
 
