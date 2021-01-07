@@ -124,6 +124,20 @@ char* writeAndReadSocket(char* input, int serv_address, bool connectS, int* dest
     return buffer;
 }
 
+bool strcmpareCipher(char * cmp, char* get, char * wrt, int * sockfd) {
+    unsigned long long int * genKeys = generujKluceRSA();
+    char buffer[256];
+    write(*sockfd, genKeys, 2*sizeof(unsigned long long int));
+    unsigned long long int sifraSpr[256];
+    read(*sockfd, sifraSpr,  256*sizeof(unsigned long long int));
+    char * desif = desifruj(sifraSpr, genKeys[2], genKeys[1]);
+    strcpy(get, desif);
+    bool ret = strcmp(cmp, desif) == 0;
+    free(desif);
+    free(genKeys);
+    return ret;
+}
+
 bool strcmpare(char * cmp, char* get, char * wrt, int * sockfd) {
     char * prijate = writeAndReadSocket(wrt, 2,false, sockfd);
     strcpy(get, prijate);
@@ -408,23 +422,40 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         int* sockfd = malloc(sizeof(int));
         free(writeAndReadSocket(buffer,2,true, sockfd));
 
+        write(*sockfd, buffer,strlen(buffer));
+        unsigned long long int returnCislo[1];
+        unsigned long long int keys[2];
+        int n = read(*sockfd, keys, sizeof(keys));
+        returnCislo[0] = modularPow((unsigned long long int)cisloKl,keys[0],keys[1]);
+        write(*sockfd, returnCislo,sizeof(returnCislo));
+        read(*sockfd, buffer,255);
         int count = 0;
+        char vlakno[256];
+        /*int count = 0;
         char vlakno[256];
         bzero(buffer, 256);
         sprintf(buffer,"%d", cisloKl);
         bzero(vlakno,256);
-        free(writeAndReadSocket(buffer, 2,false, sockfd));
+        free(writeAndReadSocket(buffer, 2,false, sockfd));*/
         //bool strcmpare(char * cmp, char* get, char * wrt, int sockfd)
-        while(!strcmpare("-1", vlakno, buffer, sockfd)) {
-            char key[256];
-            bzero(key,256);
+        while(!strcmpareCipher("-1", vlakno, buffer, sockfd)) {
+            unsigned long long int * genKeys = generujKluceRSA();
+            char buffer[256];
+            write(*sockfd, genKeys, 2*sizeof(unsigned long long int));
+
+            unsigned long long int sifraCisloZdielPam[1];
+            read(*sockfd, sifraCisloZdielPam,  sizeof(unsigned long long int));
+            unsigned long long int key = modularPow((unsigned long long int)sifraCisloZdielPam[0],genKeys[2],genKeys[1]);
+            free(genKeys);
+
+            /*bzero(key,256);
             char * ans = writeAndReadSocket(buffer, 2,false, sockfd);
             strcpy(key, ans);
-            free(ans);
+            free(ans);*/
             printf("%d. %s", count+1, vlakno);
             count++;
             if(count > klData->pocetVlakien) {
-                const key_t shm_key = (key_t)atoi(key);
+                const key_t shm_key = (key_t)key;
                 int shmid = shmget(shm_key, sizeof(CHATVLAKNOZDIEL), 0666);
                 if(shmid < 0)
                 {

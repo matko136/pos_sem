@@ -359,31 +359,56 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
 
     } else if(buffer[0] == '5') {
         write(newsockfd, buffer,strlen(buffer));
-        int cisloKl = 0;
-        bzero(buffer, 256);
+
+        unsigned long long int * genKeys = generujKluceRSA();
+        read(newsockfd, buffer,255); ///
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int));
+        unsigned long long int sifraCisloKlienta[1];
+        read(newsockfd, sifraCisloKlienta,  sizeof(unsigned long long int));
+        int cisloKl = modularPow((unsigned long long int)sifraCisloKlienta[0],genKeys[2],genKeys[1]);
+
+        /*bzero(buffer, 256);
         read(newsockfd, buffer, 255);
-        cisloKl = atoi(buffer);
+        cisloKl = atoi(buffer);*/
         write(newsockfd, buffer,strlen(buffer));
         for(int i = 0; i < data->pocVlakien; i++) {
             for(int j = 0; j < data->chatvlakno[i]->pocetKlientov; j++) {
                 if(cisloKl == data->chatvlakno[i]->klienti[j]) {
-                    read(newsockfd, buffer, 255);
-                    bzero(buffer, 256);
-                    strcpy(buffer, data->chatvlakno[i]->nazov);
-                    write(newsockfd, buffer,strlen(buffer));
-                    bzero(buffer, 256);
+                    unsigned long long int keys[2];
+                    int n = read(newsockfd, keys, sizeof(keys));
+                    unsigned long long int * cipher = zasifruj(data->chatvlakno[i]->nazov, keys[0], keys[1]);
+                    write(newsockfd, cipher, 256*sizeof(unsigned long long int));
+                    free(cipher);
+
+                    /*keys[2];
+                    n = read(newsockfd, keys, sizeof(keys));
+                    cipher = zasifruj(data->chatvlakno[i]->nazov, keys[0], keys[1]);
+                    write(newsockfd, cipher, 256*sizeof(unsigned long long int));
+                    free(cipher);*/
+                    unsigned long long int returnCislo[1];
+                    n = read(newsockfd, keys, sizeof(keys));
+                    returnCislo[0] = modularPow((unsigned long long int)data->chatvlakno[i]->shm_key_zdiel_Vlak,keys[0],keys[1]);
+                    write(newsockfd, returnCislo,sizeof(returnCislo));
+                    //n = read(newsockfd, keys, sizeof(keys));///
+
+                    /*bzero(buffer, 256);
                     read(newsockfd, buffer, 255);
                     bzero(buffer, 256);
                     sprintf(buffer, "%d", (int)data->chatvlakno[i]->shm_key_zdiel_Vlak);
-                    write(newsockfd, buffer,strlen(buffer));
+                    write(newsockfd, buffer,strlen(buffer));*/
                     break;
                 }
             }
         }
-        read(newsockfd, buffer, 255);
-        bzero(buffer, 256);
+        unsigned long long int keys[2];
+        int n = read(newsockfd, keys, sizeof(keys));
+        unsigned long long int * cipher = zasifruj("-1", keys[0], keys[1]);
+        write(newsockfd, cipher, 256*sizeof(unsigned long long int));
+        free(cipher);
+        //read(newsockfd, buffer, 255);
+        /*bzero(buffer, 256);
         strcpy(buffer, "-1");
-        write(newsockfd, buffer,strlen(buffer));
+        write(newsockfd, buffer,strlen(buffer));*/
     } else if(buffer[0] == '6') {
         write(newsockfd, buffer,strlen(buffer));
         int cisloKl = 0;
