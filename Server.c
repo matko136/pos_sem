@@ -344,7 +344,6 @@ int main(int argc, char *argv[]) {
 
         if(addr == NULL)
         {
-        {
             perror("Failed to attach shared memory block:");
             return 11;
         }

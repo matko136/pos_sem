@@ -157,7 +157,7 @@ unsigned long long int* generujKluceRSA() {
     keys[0] = e; // public key
     keys[1] = n; // public key
     keys[2] = d; // private key
-    return &keys;
+    return keys;
 }
 
 unsigned long long int* zasifruj(char * mes, unsigned long long int e, unsigned long long int n) {
@@ -165,7 +165,7 @@ unsigned long long int* zasifruj(char * mes, unsigned long long int e, unsigned 
     for(int i = 0; i < 255; i++) {
         cipher[i] = modularPow((unsigned long long int)mes[i],e,n);
     }
-    return &cipher;
+    return cipher;
 }
 
 char * desifruj(unsigned long long int * mes, unsigned long long int d, unsigned long long int n) {
@@ -173,6 +173,6 @@ char * desifruj(unsigned long long int * mes, unsigned long long int d, unsigned
     for(int i = 0; i < 255; i++) {
         decipher[i] = (char)modularPow((unsigned long long int)mes[i],d,n);
     }
-    return &decipher;
+   return decipher;
 }
 #endif //CHATAPP_RSA_H

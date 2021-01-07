@@ -47,6 +47,44 @@ int countAddToChat = 0;
 int countMakeNewChat = 0;
 int countChatToConnect = 0;
 
+unsigned long long int * writeAndReadSocketCipher(unsigned long long int * input, int serv_address, bool connectS, int* destSourcSock) {
+    unsigned long long int * buffer= malloc(256*sizeof (unsigned long long int));
+    int sockfd;
+    if(connectS) {
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0) {
+            perror("Error creating socket");
+            return 3;
+        }
+        if (serv_address == 1) {
+            if (connect(sockfd, (struct sockaddr *) &serv_addrStart, sizeof(serv_addrStart)) < 0) {
+                perror("Error connecting to socket");
+                return 4;
+            }
+        } else {
+            if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+                perror("Error connecting to socket");
+                return 4;
+            }
+        }
+        *destSourcSock = sockfd;
+    } else {
+        sockfd = *destSourcSock;
+    }
+    //bzero(buffer, 256*sizeof(unsigned long long int));
+    if(serv_address != 1) {
+        int n = write(sockfd, input, 256*sizeof(unsigned long long int));
+    }
+    bzero(buffer, 256*sizeof(unsigned long long int));
+    int n = read(sockfd, buffer, 256*sizeof(unsigned long long int));
+    if (n < 0)
+    {
+        perror("Error reading from socket");
+        return 6;
+    }
+    return buffer;
+}
+
 char* writeAndReadSocket(char* input, int serv_address, bool connectS, int* destSourcSock) {
     char * buffer= malloc(256*sizeof (char));
     int sockfd;
@@ -120,18 +158,32 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             pthread_mutex_unlock(&zdiel->mutex);
             pthread_cond_signal(&zdiel->odoslana);
             int* sockfd = malloc(sizeof(int));
-            free(writeAndReadSocket(buffer,2,true, sockfd));
-            free(writeAndReadSocket(meno,2, false, sockfd));
-            bzero(buffer, 256);
-            char * ans = writeAndReadSocket(heslo,2, false, sockfd);
-            strcpy(buffer, ans);
+            free(writeAndReadSocket(buffer,2,true, sockfd)); // odosl cisla poziad
+            unsigned long long int keys[2];
+            write(*sockfd, buffer,strlen(buffer));
+            int n = read(*sockfd, keys, sizeof(keys)); // 1 read kluc
+            unsigned long long int * cipher = zasifruj(meno, keys[0], keys[1]);
+            free(writeAndReadSocketCipher(cipher,2,false, sockfd));//2 write zasif meno
+            free(cipher);
+            write(*sockfd, buffer,strlen(buffer));
+            read(*sockfd, keys, sizeof(keys)); // 3 read kluc
+            cipher = zasifruj(heslo, keys[0], keys[1]);
+            unsigned long long int * genKeys = generujKluceRSA();
+            write(*sockfd, genKeys, 2*sizeof(unsigned long long int)); // 4 write kluc
+            read(*sockfd, buffer,255);
+            unsigned long long int * ans = writeAndReadSocketCipher(cipher,2,false, sockfd); // 5 write heslo pouz
+            free(cipher);
+            char cislPouz[256];
+            bzero(cislPouz, 256);
+            sprintf(cislPouz, "%d", modularPow((unsigned long long int)ans[0],genKeys[2],genKeys[1]));
             free(ans);
-            if (strcmp(buffer,"-1") == 0) {
+            free(genKeys);
+            if (strcmp(cislPouz,"-1") == 0) {
                 printf("Zle zadane meno alebo heslo:\n");
             } else {
                 printf("Uspesne prihlasenie\n");
                 strcpy(prezyvka, meno);
-                ret = atoi(buffer);
+                ret = atoi(cislPouz);
                 strcpy(pass, heslo);
                 uspesne = true;
             }
@@ -161,21 +213,34 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
             pthread_cond_signal(&zdiel->odoslana);
 
             int* sockfd = malloc(sizeof(int));
-            free(writeAndReadSocket(buffer,2,true, sockfd));
+            free(writeAndReadSocket(buffer,2,true, sockfd));// cislo poz
 
-            free(writeAndReadSocket(meno,2,false, sockfd));
-
-            bzero(buffer, 256);
-            char *ans  = writeAndReadSocket(heslo,2,false, sockfd);
-            strcpy(buffer, ans);
+            unsigned long long int keys[2];
+            write(*sockfd, buffer,strlen(buffer));
+            int n = read(*sockfd, keys, sizeof(keys)); // 1 read klucov
+            unsigned long long int * cipher = zasifruj(meno, keys[0], keys[1]);
+            free(writeAndReadSocketCipher(cipher,2,false, sockfd)); // 2 write sifr meno
+            free(cipher);
+            write(*sockfd, buffer,strlen(buffer));
+            read(*sockfd, keys, sizeof(keys)); // 3 read kluc
+            cipher = zasifruj(heslo, keys[0], keys[1]);
+            unsigned long long int * genKeys = generujKluceRSA();
+            write(*sockfd, genKeys, 2*sizeof(unsigned long long int)); // 4 write kluc
+            read(*sockfd, buffer,255);
+            unsigned long long int * ans = writeAndReadSocketCipher(cipher,2,false, sockfd); // 5 heslo pouz
+            free(cipher);
+            char cislPouz[256];
+            bzero(cislPouz, 256);
+            sprintf(cislPouz, "%d", modularPow((unsigned long long int)ans[0],genKeys[2],genKeys[1]));
             free(ans);
+            free(genKeys);
 
-            if(strcmp(buffer,"-1") == 0) {
+            if(strcmp(cislPouz,"-1") == 0) {
                 printf("Prezyvka uz pouzita, zadajte inu:\n");
-            } else {
+            }  else {
                 printf("Registracia uspesna, ste prihlaseni\n");
                 strcpy(prezyvka, meno);
-                ret = atoi(buffer);
+                ret = atoi(cislPouz);
                 strcpy(pass, heslo);
                 uspesne = true;
             }
@@ -194,18 +259,38 @@ int odosliPoziadavku(int poziadavka, ZDIEL* zdiel, char * sprava, int cisloKl, i
         pthread_cond_signal(&zdiel->odoslana);
         int* sockfd = malloc(sizeof(int));
         free(writeAndReadSocket(buffer,2,true, sockfd));
+        write(*sockfd, buffer,strlen(buffer));
+        char sprNaSif[256];
+        //citam kluc od serveru
+        unsigned long long int keys[2];
+        int n = read(*sockfd, keys, sizeof(keys));
+        //sifrujem spravu
+        unsigned long long int * cipher = zasifruj(sprava, keys[0], keys[1]);
+        //odoslanie zas spravy
+        free(writeAndReadSocketCipher(cipher,2,false, sockfd)); // 2 write sifr sprava
+        free(cipher);
 
-        bzero(buffer, 256);
-        strcpy(buffer, sprava);
-        free(writeAndReadSocket(buffer, 2,false, sockfd));
+        write(*sockfd, buffer,strlen(buffer));
+        //citam kluc od serveru
+        n = read(*sockfd, keys, sizeof(keys));
+        //sifrujem vlakno
+        bzero(sprNaSif, 256);
+        sprintf(sprNaSif, "%d", cisloVlak);
+        cipher = zasifruj(sprNaSif, keys[0], keys[1]);
+        //odoslanie zas vlakna
+        free(writeAndReadSocketCipher(cipher,2,false, sockfd)); // 2 write sifr vlakno
+        free(cipher);
 
-        bzero(buffer, 256);
-        sprintf(buffer,"%d", cisloVlak);
-        free(writeAndReadSocket(buffer, 2,false, sockfd));
-
-        bzero(buffer, 256);
-        sprintf(buffer,"%d", cisloKl);
-        free(writeAndReadSocket(buffer, 2,false, sockfd));
+        write(*sockfd, buffer,strlen(buffer));
+        //citam kluc od serveru
+        n = read(*sockfd, keys, sizeof(keys));
+        //sifrujem vlakno
+        bzero(sprNaSif, 256);
+        sprintf(sprNaSif,"%d",  cisloKl);
+        cipher = zasifruj(sprNaSif, keys[0], keys[1]);
+        //odoslanie zas vlakna
+        free(writeAndReadSocketCipher(cipher,2,false, sockfd)); // 2 write sifr vlakno
+        free(cipher);
         free(sockfd);
     } else if(poziadavka == 4) {
         char prezyvkaKlienSpr[256];

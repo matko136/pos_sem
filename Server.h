@@ -112,23 +112,28 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
     int n = read(newsockfd, buffer, 255);
     int ret = -1;
     if(buffer[0] == '1') {
-        char meno[256];
-        char heslo[256];
+        unsigned long long int * genKeys = generujKluceRSA();
+        write(newsockfd, buffer,strlen(buffer));// odpoved na poziadavku
+        read(newsockfd, buffer,255);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); //1 write kluc
+        unsigned long long int menoZak[256];
+        read(newsockfd, menoZak, 256*sizeof(unsigned long long int));// 2 read zasif meno
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int));// 2 odpoved na zasif meno
+        char * meno = desifruj(menoZak, genKeys[2], genKeys[1]);
+        free(genKeys);
+        genKeys = generujKluceRSA();
+        read(newsockfd, buffer,255);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+        unsigned long long int keys[2];
+        read(newsockfd, keys, sizeof(keys)); // 4 read kluc
+        unsigned long long int hesloZak[256];
         write(newsockfd, buffer,strlen(buffer));
-        bzero(meno, 256);
-        read(newsockfd, meno, 255);
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(heslo, 256);
-        read(newsockfd, heslo, 255);
+        read(newsockfd, hesloZak, 256*sizeof(unsigned long long int)); // 5 read heslo
+        char * heslo = desifruj(hesloZak, genKeys[2], genKeys[1]);
+        free(genKeys);
         bool success = false;
-        char prezyvka[256];
-        bzero(prezyvka, 256);
-        char hsl[256];
-        bzero(hsl, 256);
         for(int i = 0; i < data->pocetKlientov; i++) {
-            strcpy(prezyvka, data->prezyvky[i]);
             if (strcmp(data->prezyvky[i], meno) == 0) {
-                strcpy(hsl, data->hesla[i]);
                 if (strcmp(data->hesla[i], heslo) == 0) {
                     success = true;
                     ret = i + 1;
@@ -136,20 +141,31 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
                 break;
             }
         }
-
-        bzero(buffer, 256);
-        sprintf(buffer, "%d", ret);
-        write(newsockfd, buffer,strlen(buffer));
+        unsigned long long int returnCislo[1];
+        returnCislo[0] = modularPow((unsigned long long int)ret,keys[0],keys[1]);
+        write(newsockfd, returnCislo,sizeof(returnCislo));
+        free(meno);
+        free(heslo);
     } else if(buffer[0] == '2') {
-        char meno[256];
-        char heslo[256];
+        write(newsockfd, buffer,strlen(buffer));// odpov na cislo poz
+        unsigned long long int * genKeys = generujKluceRSA();
+        read(newsockfd, buffer,255);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); //1 write kluc
+        unsigned long long int menoZak[256];
+        read(newsockfd, menoZak, 256*sizeof(unsigned long long int)); // 2 read sifra meno
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 2 write odpoved sifra meno
+        char * meno = desifruj(menoZak, genKeys[2], genKeys[1]);
+        free(genKeys);
+        genKeys = generujKluceRSA();
+        read(newsockfd, buffer,255);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
+        unsigned long long int keys[2];
+        read(newsockfd, keys, sizeof(keys)); // 4 read kluc
+        unsigned long long int hesloZak[256];
         write(newsockfd, buffer,strlen(buffer));
-        bzero(meno, 256);
-        read(newsockfd, meno, 255);
-        usleep(100);
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(heslo, 256);
-        read(newsockfd, heslo, 255);
+        read(newsockfd, hesloZak, 256*sizeof(unsigned long long int)); // 5 read heslo pouz
+        char * heslo = desifruj(hesloZak, genKeys[2], genKeys[1]);
+        free(genKeys);
         bool success = true;
         ret = 0;
         for(int i = 0; i < data->pocetKlientov; i++) {
@@ -177,30 +193,66 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         } else {
             ret = -1;
         }
-        bzero(buffer, 256);
-        sprintf(buffer, "%d", ret);
-        write(newsockfd, buffer,strlen(buffer));
+        unsigned long long int returnCislo[1];
+        returnCislo[0] = modularPow((unsigned long long int)ret,keys[0],keys[1]);
+        write(newsockfd, returnCislo,sizeof(returnCislo));
+        free(meno);
+        free(heslo);
     } else if(buffer[0] == '3') {
-        char sprava[256];
+        /*
+         1 vygenerovat kluce pre sifrovanie spravy
+         2 vygenerovat kluce pre sifrovanie cisla vlakna
+         3 vygenerovat kluce pre sifrovanie cisla klienta
+         4
+         */
         int cisloVlakna = 0;
         int cisloKlienta = 0;
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(sprava, 256);
-        read(newsockfd, sprava, 255);
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
-        cisloVlakna = atoi(buffer);
-        write(newsockfd, buffer,strlen(buffer));
-        bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
-        cisloKlienta = atoi(buffer);
-        write(newsockfd, buffer,strlen(buffer));
-        char addr1[256];
-        char addr2[256];
+        write(newsockfd, buffer,strlen(buffer));// odpoved na poziadavku
+        unsigned long long int * genKeys = generujKluceRSA();
+        read(newsockfd, buffer,255);
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); //1 write kluc
+        unsigned long long int spravaZak[256];
+        // prijatie zak spravy
+        read(newsockfd, spravaZak, 256*sizeof(unsigned long long int));
+        //odpoved na prij zak spravy
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int));
+        //desifrovanie spravy
+        read(newsockfd, buffer,255);
+        char * sprava = desifruj(spravaZak, genKeys[2], genKeys[1]);
+        free(genKeys);
+        // write kluc pre vlakno
+        genKeys = generujKluceRSA();
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); //1 write kluc
+        unsigned long long int vlaknoZak[256];
+        // prijatie zak vlakna
+        read(newsockfd, vlaknoZak, 256*sizeof(unsigned long long int));
+        // odpoved na prij zak Vlakno
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int));
+        // desifrovanie vlakna
+        char * vlakno = desifruj(vlaknoZak, genKeys[2], genKeys[1]);
+        free(genKeys);
+
+        read(newsockfd, buffer,255);
+        // write kluc pre klienta
+        genKeys = generujKluceRSA();
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); //1 write kluc
+        unsigned long long int klientZak[256];
+        // prijatie zak klienta
+        read(newsockfd, klientZak, 256*sizeof(unsigned long long int));
+        // odpoved na prij zak klienta
+        write(newsockfd, genKeys, 2*sizeof(unsigned long long int));
+        // desifrovanie klienta
+        char * klient = desifruj(klientZak, genKeys[2], genKeys[1]);
+        free(genKeys);
+
+        cisloKlienta = atoi(klient);
+        free(klient);
+        cisloVlakna = atoi(vlakno);
+        free(vlakno);
+
         strcpy(data->chatvlakno[cisloVlakna-1]->spravy[data->chatvlakno[cisloVlakna-1]->pocetSprav],sprava);
         data->chatvlakno[cisloVlakna-1]->klientSprav[data->chatvlakno[cisloVlakna-1]->pocetSprav++] = cisloKlienta;
-
+        free(sprava);
         FILE * fptr;
         char filename[256];
         bzero(filename, 256);

@@ -127,6 +127,7 @@ void *odosielajSpravu(void *arg) {
         } else {
             if (data->aktChat != 0) {
                 odosliPoziadavku(3, zdiel, buffer, data->cisloKlient, data->chatvlakno[data->aktChat - 1]->cislo, 0);
+                data->pocetNacitSprav[data->aktChat - 1]++;
                 data->chatvlakno[data->aktChat - 1]->pocetSprav++;
             } else {
                 printf("Pred pisanim spravy vyberte chat zadanim ';menu'\n");
@@ -137,6 +138,7 @@ void *odosielajSpravu(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
+    srand(time(NULL));
     initFirst1000Primes();
     int n;
 
