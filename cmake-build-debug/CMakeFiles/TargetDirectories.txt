@@ -1,4 +1,4 @@
-/mnt/c/Users/matob/CLionProjects/pos_sem/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/mnt/c/Users/matob/CLionProjects/pos_sem/cmake-build-debug/CMakeFiles/edit_cache.dir
-/mnt/c/Users/matob/CLionProjects/pos_sem/cmake-build-debug/CMakeFiles/Klient.dir
-/mnt/c/Users/matob/CLionProjects/pos_sem/cmake-build-debug/CMakeFiles/Server.dir
+/tmp/tmp.0EM01MqZuO/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/tmp/tmp.0EM01MqZuO/cmake-build-debug/CMakeFiles/Klient.dir
+/tmp/tmp.0EM01MqZuO/cmake-build-debug/CMakeFiles/edit_cache.dir
+/tmp/tmp.0EM01MqZuO/cmake-build-debug/CMakeFiles/Server.dir

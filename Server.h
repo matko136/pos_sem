@@ -110,7 +110,7 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
     char buffer[256];
     bzero(buffer, 256);
     int n = read(newsockfd, buffer, 255);
-    int ret = -1;
+    int ret = 69;
     if(buffer[0] == '1') {
         unsigned long long int * genKeys = generujKluceRSA();
         write(newsockfd, buffer,strlen(buffer));// odpoved na poziadavku
@@ -191,7 +191,7 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
             fprintf(fptr2, "%s", data->hesla[data->pocetKlientov-1]);
             fclose(fptr2);
         } else {
-            ret = -1;
+            ret = 69;
         }
         unsigned long long int returnCislo[1];
         returnCislo[0] = modularPow((unsigned long long int)ret,keys[0],keys[1]);
@@ -267,11 +267,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         fprintf(fptr, "%d\n", data->chatvlakno[cisloVlakna-1]->klientSprav[data->chatvlakno[cisloVlakna-1]->pocetSprav-1]);
         fclose(fptr);
     } else if(buffer[0] == '4') {
-
-
-
-
-
         unsigned long long int cisloVlakna = 0;
         unsigned long long int cisloKlienta = 0;
         unsigned long long int cisloSpravy = 0;
@@ -281,16 +276,11 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         unsigned long long int * genKeys = generujKluceRSA();
         read(newsockfd, buffer,255); ///
         write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
-        //read(newsockfd, buffer,255); ///
 
         //citanie cisVlakna
         unsigned long long int cisloVlakZak[1];
         read(newsockfd, cisloVlakZak, sizeof(unsigned long long int));
         cisloVlakna = modularPow((unsigned long long int)cisloVlakZak[0],genKeys[2],genKeys[1]);
-        //char * tempCisVlak = desifruj(cisloVlakZak, genKeys[2], genKeys[1]);
-        //cisloVlakna = atoi(tempCisVlak);
-        //free(tempCisVlak);
-        //write(newsockfd, genKeys, 2*sizeof(unsigned long long int)); // 3 write kluc
         free(genKeys);
 
         //cisloSpravy
@@ -299,9 +289,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         unsigned long long int sifraCisloSpravy[1];
         read(newsockfd, sifraCisloSpravy,  sizeof(unsigned long long int));
         cisloSpravy = modularPow((unsigned long long int)sifraCisloSpravy[0],genKeys[2],genKeys[1]);
-        //char * tempCisSprav = desifruj(sifraCisloSpravy[0], genKeys[2], genKeys[1]);
-        //cisloVlakna = atoi(tempCisSprav);
-        //free(tempCisSprav);
         write(newsockfd, genKeys, 2*sizeof(unsigned long long int));///
         free(genKeys);
 
@@ -309,10 +296,6 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         //odoslanie spravy
         unsigned long long int keys[2];
         int n = read(newsockfd, keys, sizeof(keys));
-        //bzero(buffer, 256);
-        //strcpy(buffer, data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy]);
-        //write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
-        //sifrujem spravu
         unsigned long long int * cipher = zasifruj(data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy], keys[0], keys[1]);
         //odoslanie zas spravy
         write(newsockfd, cipher, 256*sizeof(unsigned long long int));
@@ -322,40 +305,9 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         //odoslanie prezyvky
         n = read(newsockfd, keys, sizeof(keys));
         bzero(buffer, 256);
-        //strcpy(buffer, data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1]);
         cipher = zasifruj(data->prezyvky[data->chatvlakno[cisloVlakna-1]->klientSprav[cisloSpravy]-1], keys[0], keys[1]);
         write(newsockfd, cipher, 256*sizeof(unsigned long long int));
         free(cipher);
-        //write(newsockfd, modularPow((unsigned long long int)buffer,keys[0],keys[1]), 256 * sizeof(unsigned long long int)); ///maybe treba premenu
-
-
-
-
-//        write(newsockfd, buffer,strlen(buffer));
-//        read(newsockfd, buffer, 255);
-//        bzero(buffer, 256);
-//        strcpy(buffer, data->chatvlakno[cisloVlakna-1]->spravy[cisloSpravy]);
-//        write(newsockfd, buffer,strlen(buffer));
-
-//        unsigned long long int keys[2];
-//        read(newsockfd, keys, sizeof(keys));
-//        write(newsockfd, modularPow((unsigned long long int)ret,keys[0],keys[1]), sizeof(unsigned long long int)); ///maybe treba premenu
-//
-//
-       // read(newsockfd, cisSpravy[0], sizeof(unsigned long long int));
-
-//        bzero(buffer, 256);
-//        read(newsockfd, buffer, 255);
-//        cisloVlakna = atoi(buffer);
-//        write(newsockfd, buffer,strlen(buffer));
-//        bzero(buffer, 256);
-//        read(newsockfd, buffer, 255);
-//        cisloKlienta = atoi(buffer);
-//        write(newsockfd, buffer,strlen(buffer));
-
-//        bzero(buffer, 256);
-//        read(newsockfd, buffer, 255);
-//        cisloSpravy = atoi(buffer);
 
     } else if(buffer[0] == '5') {
         write(newsockfd, buffer,strlen(buffer));
@@ -366,10 +318,7 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         unsigned long long int sifraCisloKlienta[1];
         read(newsockfd, sifraCisloKlienta,  sizeof(unsigned long long int));
         int cisloKl = modularPow((unsigned long long int)sifraCisloKlienta[0],genKeys[2],genKeys[1]);
-
-        /*bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
-        cisloKl = atoi(buffer);*/
+        free(genKeys);
         write(newsockfd, buffer,strlen(buffer));
         for(int i = 0; i < data->pocVlakien; i++) {
             for(int j = 0; j < data->chatvlakno[i]->pocetKlientov; j++) {
@@ -380,35 +329,22 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
                     write(newsockfd, cipher, 256*sizeof(unsigned long long int));
                     free(cipher);
 
-                    /*keys[2];
                     n = read(newsockfd, keys, sizeof(keys));
-                    cipher = zasifruj(data->chatvlakno[i]->nazov, keys[0], keys[1]);
+                    char keyy[256];
+                    bzero(keyy, 256);
+                    sprintf(keyy, "%d", data->chatvlakno[i]->shm_key_zdiel_Vlak);
+                    cipher = zasifruj(keyy, keys[0], keys[1]);
                     write(newsockfd, cipher, 256*sizeof(unsigned long long int));
-                    free(cipher);*/
-                    unsigned long long int returnCislo[1];
-                    n = read(newsockfd, keys, sizeof(keys));
-                    returnCislo[0] = modularPow((unsigned long long int)data->chatvlakno[i]->shm_key_zdiel_Vlak,keys[0],keys[1]);
-                    write(newsockfd, returnCislo,sizeof(returnCislo));
-                    //n = read(newsockfd, keys, sizeof(keys));///
-
-                    /*bzero(buffer, 256);
-                    read(newsockfd, buffer, 255);
-                    bzero(buffer, 256);
-                    sprintf(buffer, "%d", (int)data->chatvlakno[i]->shm_key_zdiel_Vlak);
-                    write(newsockfd, buffer,strlen(buffer));*/
+                    free(cipher);
                     break;
                 }
             }
         }
         unsigned long long int keys[2];
         int n = read(newsockfd, keys, sizeof(keys));
-        unsigned long long int * cipher = zasifruj("-1", keys[0], keys[1]);
+        unsigned long long int * cipher = zasifruj("69", keys[0], keys[1]);
         write(newsockfd, cipher, 256*sizeof(unsigned long long int));
         free(cipher);
-        //read(newsockfd, buffer, 255);
-        /*bzero(buffer, 256);
-        strcpy(buffer, "-1");
-        write(newsockfd, buffer,strlen(buffer));*/
     } else if(buffer[0] == '6') {
         write(newsockfd, buffer,strlen(buffer));
         int cisloKl = 0;
@@ -430,7 +366,7 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         }
         read(newsockfd, buffer, 255);
         bzero(buffer, 256);
-        strcpy(buffer, "-1");
+        strcpy(buffer, "69");
         write(newsockfd, buffer,strlen(buffer));
     } else if(buffer[0] == '7') {
         write(newsockfd, buffer,strlen(buffer));
@@ -444,6 +380,9 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         bzero(buffer, 256);
         read(newsockfd, buffer, 255);
         cisloKlToAdd = atoi(buffer);
+        if(cisloKlToAdd > 10) {
+            int x = 0;
+        }
         write(newsockfd, buffer,strlen(buffer));
         bzero(nazov, 256);
         read(newsockfd, nazov, 255);
@@ -520,11 +459,15 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
         fclose(fptr);
     }
     else if(buffer[0] == '9') {
-        write(newsockfd, buffer,strlen(buffer));
+        write(newsockfd, buffer,strlen(buffer)); ///odpovedanie na prijatie poziadavky
         int cisloVlak = 0;
         bzero(buffer, 256);
-        read(newsockfd, buffer, 255);
+
+
+
+        read(newsockfd, buffer, 255); /// prijatie cisla vlakna
         cisloVlak = atoi(buffer);
+
         write(newsockfd, buffer,strlen(buffer));////odpovedanie na strane klienta
         for(int i = 0; i < data->pocetKlientov; i++) {
             bool success = true;
@@ -535,19 +478,30 @@ int obsluhujKlienta(int newsockfd, SERVER* data) {
                 }
             }
             if(success) {
+
+                ///odoslanie idcka
                 read(newsockfd, buffer, 255);
                 bzero(buffer, 256);
                 sprintf(buffer,"%d", i+1);
                 write(newsockfd, buffer,strlen(buffer));
-                read(newsockfd, buffer, 255);
+
+                ///prezvyka
+                unsigned long long int keys[2];
+                n = read(newsockfd, keys, sizeof(keys));//
+                bzero(buffer, 256);
                 bzero(buffer, 256);
                 strcpy(buffer, data->prezyvky[i]);
-                write(newsockfd, buffer,strlen(buffer));
+                char * cipher = zasifruj(buffer, keys[0], keys[1]);
+                write(newsockfd, cipher, 256*sizeof(unsigned long long int));
+                free(cipher);
+
+
+
             }
         }
         read(newsockfd, buffer, 255);
         bzero(buffer, 256);
-        strcpy(buffer, "-1");
+        strcpy(buffer, "69");
         write(newsockfd, buffer,strlen(buffer));
     }
     return ret;

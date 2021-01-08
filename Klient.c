@@ -14,6 +14,7 @@
 #include "Klient.h"
 
 bool exitKli = false;
+
 void *prijimajSpravy(void *arg) {
     KLIENT *data = (KLIENT *) arg;
     ZDIEL *zdiel = data->zdiel;
@@ -26,7 +27,7 @@ void *prijimajSpravy(void *arg) {
                 data->pocetNacitSprav[data->aktChat - 1]++;
             }
         }
-        if(exitKli) {
+        if (exitKli) {
             pthread_exit(NULL);
         }
         usleep(100000);
@@ -178,7 +179,6 @@ int main(int argc, char *argv[]) {
     char *spravy = writeAndReadSocket(buffer, 1, true, &sockfd);
     const key_t shm_key = (key_t) atoi(spravy);
     free(spravy);
-    printf("%d\n", (int) shm_key);
     int shmid = shmget(shm_key, sizeof(ZDIEL), 0666);
     if (shmid < 0) {
         perror("Failed to open shared memory block:");
@@ -214,9 +214,9 @@ int main(int argc, char *argv[]) {
     }
 
     pthread_t klient;
-    pthread_t  prijimanieSprav;
+    pthread_t prijimanieSprav;
     int pocetNacSprav[20];
-    for(int i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; i++) {
         pocetNacSprav[i] = 0;
     }
     CHATVLAKNOZDIEL vlakna[20];

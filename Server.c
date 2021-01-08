@@ -14,17 +14,35 @@
 #include <limits.h>
 #include "Server.h"
 #include "RSA.h"
+
 pthread_t serv;
 pthread_t servPrijmKlien;
 key_t shm_key_glob;
-void* skonci() {
-    while(1) {
-        printf("Pre ukoncenie zadajte 1:");
+
+void *skonci(void *arg) {
+    SERVER *data = (SERVER *) arg;
+    while (1) {
+        printf("Pre ukoncenie zadajte '1':\n");
+        printf("Pre vypis klientov zadajte '2':\n");
+        printf("Vasa volba: \n");
         char buff[2];
-        bzero(buff,1);
+        bzero(buff, 1);
         fgets(buff, 2, stdin);
         if (buff[0] == '1') {
             break;
+        }
+
+        if (buff[0] == '2') {
+
+            if (data->pocetKlientov > 0) {
+                printf("-----===KLIENTI===-----\n");
+                for (int i = 0; i < data->pocetKlientov; i++) {
+                    printf("%d. %s", i + 1, data->prezyvky[i]);
+                }
+            } else {
+                printf("Nie je zaregistrovany ziadny klient.\n");
+            }
+            printf("-----=============-----\n");
         }
     }
     pthread_cancel(serv);
@@ -32,25 +50,24 @@ void* skonci() {
     pthread_exit(NULL);
 }
 
-void* obsluhujChat(void* arg) {
+void *obsluhujChat(void *arg) {
     serv = pthread_self();
-    SERVER* data = (SERVER*)arg;
-    ZDIEL*
+    SERVER *data = (SERVER *) arg;
+    ZDIEL *
             zdiel = data->zdiel;
     int sockfd = data->sock;
     listen(sockfd, 5);
-    while(1) {
+    while (1) {
         int newsockfd;
         socklen_t cli_len;
         struct sockaddr_in cli_addr;
         cli_len = sizeof(cli_addr);
         pthread_mutex_lock(&zdiel->mutex);
-        while(zdiel->nova == 0) {
+        while (zdiel->nova == 0) {
             pthread_cond_wait(&zdiel->odoslana, &zdiel->mutex);
         }
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-        if (newsockfd < 0)
-        {
+        if (newsockfd < 0) {
             perror("ERROR on accept");
             return 3;
         }
@@ -62,32 +79,30 @@ void* obsluhujChat(void* arg) {
     return NULL;
 }
 
-void* manazujKlientov(void* arg) {
+void *manazujKlientov(void *arg) {
     servPrijmKlien = pthread_self();
-    SERVER* data = (SERVER*)arg;
-    ZDIEL*
+    SERVER *data = (SERVER *) arg;
+    ZDIEL *
             zdiel = data->zdiel;
     int sockfd = data->sockPripojenie;
     listen(sockfd, 5);
-    while(1) {
+    while (1) {
         int newsockfd;
         socklen_t cli_len;
         struct sockaddr_in cli_addr;
         cli_len = sizeof(cli_addr);
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-        if (newsockfd < 0)
-        {
+        if (newsockfd < 0) {
             perror("ERROR on accept");
             return 3;
         }
         char buffer[256];
         bzero(buffer, 256);
-        int a = (int)shm_key_glob;
+        int a = (int) shm_key_glob;
         sprintf(buffer, "%d", a);
-        int n = write(newsockfd, buffer,strlen(buffer));
+        int n = write(newsockfd, buffer, strlen(buffer));
 
-        if (n < 0)
-        {
+        if (n < 0) {
             perror("Error writing to socket");
             return 5;
         }
@@ -157,22 +172,20 @@ int main(int argc, char *argv[]) {
     pthread_cond_t cond2;
     pthread_cond_t cond3;
 
-    const key_t shm_key = (key_t)rand()%INT_MAX;
+    const key_t shm_key = (key_t) rand() % INT_MAX;
     shm_key_glob = shm_key;
-    int shmid = shmget(shm_key, sizeof(ZDIEL), 0666|IPC_CREAT|IPC_EXCL);
+    int shmid = shmget(shm_key, sizeof(ZDIEL), 0666 | IPC_CREAT | IPC_EXCL);
 
-    if(shmid < 0)
-    {
+    if (shmid < 0) {
         perror("Failed to create shared memory block:");
         return 10;
     }
-    void* addr = shmat(shmid, NULL, 0);
-    if(addr == NULL)
-    {
+    void *addr = shmat(shmid, NULL, 0);
+    if (addr == NULL) {
         perror("Failed to attach shared memory block:");
         return 11;
     }
-    struct zdiel* zdielane = (struct zdiel*)addr;
+    struct zdiel *zdielane = (struct zdiel *) addr;
     zdielane->mutex = mut;
     zdielane->odoslana = cond1;
     zdielane->prijata = cond2;
@@ -199,27 +212,27 @@ int main(int argc, char *argv[]) {
     pthread_condattr_setpshared(&condattr3, PTHREAD_PROCESS_SHARED);
     pthread_cond_init(&zdielane->aktualizSpravy, &condattr3);
     int klientiId[10];
-    char ** prezyvky = (char **)malloc(10*sizeof(char *));
-    for(int i = 0; i< 10; i++) {
-        prezyvky[i] = (char *)malloc(256*sizeof(char));
+    char **prezyvky = (char **) malloc(10 * sizeof(char *));
+    for (int i = 0; i < 10; i++) {
+        prezyvky[i] = (char *) malloc(256 * sizeof(char));
     }
-    char ** hesla = (char **)malloc(10*sizeof(char *));
-    for(int i = 0; i< 10; i++) {
-        hesla[i] = (char *)malloc(256*sizeof(char));
+    char **hesla = (char **) malloc(10 * sizeof(char *));
+    for (int i = 0; i < 10; i++) {
+        hesla[i] = (char *) malloc(256 * sizeof(char));
     }
 
 
-    CHATVLAKNO ** chatVlakna = (CHATVLAKNO **)malloc(10*sizeof(CHATVLAKNO *));
-    char ** spravyPole[10];
-    for(int i = 0; i < 10; i++) {
-        chatVlakna[i] = (CHATVLAKNO *)malloc(sizeof(CHATVLAKNO));
-        char ** spravy = (char **)malloc(1000*sizeof(char *));
-        for(int j = 0; j < 1000; j++) {
-            spravy[j] = (char *)malloc(256*sizeof(char));
+    CHATVLAKNO **chatVlakna = (CHATVLAKNO **) malloc(10 * sizeof(CHATVLAKNO *));
+    char **spravyPole[10];
+    for (int i = 0; i < 10; i++) {
+        chatVlakna[i] = (CHATVLAKNO *) malloc(sizeof(CHATVLAKNO));
+        char **spravy = (char **) malloc(1000 * sizeof(char *));
+        for (int j = 0; j < 1000; j++) {
+            spravy[j] = (char *) malloc(256 * sizeof(char));
         }
-        int * klientSpr = (int *)malloc(1000*sizeof(int));
-        int * klienti = (int *)malloc(10*sizeof(int));
-        char * nazov = (char *)malloc(256*sizeof(char));
+        int *klientSpr = (int *) malloc(1000 * sizeof(int));
+        int *klienti = (int *) malloc(10 * sizeof(int));
+        char *nazov = (char *) malloc(256 * sizeof(char));
         spravyPole[i] = spravy;
         chatVlakna[i]->spravy = spravy;
         chatVlakna[i]->klientSprav = klientSpr;
@@ -235,19 +248,19 @@ int main(int argc, char *argv[]) {
     char line[256];
     bzero(line, 256);
     FILE *fptr;
-    fptr = fopen("serv_ud.txt","r");
-    if(fptr != NULL) {
-        fscanf(fptr,"%s", &line);
+    fptr = fopen("serv_ud.txt", "r");
+    if (fptr != NULL) {
+        fscanf(fptr, "%s", &line);
         fscanf(fptr, "%d", &num);
         serv.pocVlakien = num;
         fscanf(fptr, "%d", &num);
         serv.pocetKlientov = num;
         FILE *fptr2;
-        fptr2 = fopen("serv_hsl.txt","r");
-        fscanf(fptr2,"%s", &line);
-        for(int i = 0; i < serv.pocetKlientov; i++) {
+        fptr2 = fopen("serv_hsl.txt", "r");
+        fscanf(fptr2, "%s", &line);
+        for (int i = 0; i < serv.pocetKlientov; i++) {
             bzero(line, 256);
-            fscanf(fptr,"%s", &line);
+            fscanf(fptr, "%s", &line);
             strcat(line, "\n");
             strcpy(serv.prezyvky[i], line);
             bzero(line, 256);
@@ -258,65 +271,66 @@ int main(int argc, char *argv[]) {
         fclose(fptr);
         fclose(fptr2);
 
-        for(int i = 0; i < serv.pocVlakien; i++) {
-            FILE * fptr3;
+        for (int i = 0; i < serv.pocVlakien; i++) {
+            FILE *fptr3;
             char filename[256];
             bzero(filename, 256);
-            sprintf(filename,"%d", i+1);
-            strcat(filename,"vlak_ud.txt");
+            sprintf(filename, "%d", i + 1);
+            strcat(filename, "vlak_ud.txt");
             fptr3 = fopen(filename, "r");
-            fscanf(fptr3,"%s", &line);
+            fscanf(fptr3, "%s", &line);
             fscanf(fptr3, "%d", &num);
             serv.chatvlakno[i]->cislo = num;
             bzero(line, 256);
-            fscanf(fptr3,"%s", &line);
+            fscanf(fptr3, "%s", &line);
             strcat(line, "\n");
             strcpy(serv.chatvlakno[i]->nazov, line);
             fscanf(fptr3, "%d", &num);
             serv.chatvlakno[i]->pocetKlientov = num;
-            for(int j = 0; j < serv.chatvlakno[i]->pocetKlientov; j++) {
+            for (int j = 0; j < serv.chatvlakno[i]->pocetKlientov; j++) {
                 fscanf(fptr3, "%d", &num);
                 serv.chatvlakno[i]->klienti[j] = num;
             }
             fclose(fptr3);
-            FILE * fptr4;
+            FILE *fptr4;
             bzero(filename, 256);
-            sprintf(filename,"%d", i+1);
-            strcat(filename,"vlak_spravy.txt");
+            sprintf(filename, "%d", i + 1);
+            strcat(filename, "vlak_spravy.txt");
             fptr4 = fopen(filename, "r");
-            fscanf(fptr4,"%s", &line);
+            fscanf(fptr4, "%s", &line);
             fscanf(fptr4, "%d\n", &num);
             serv.chatvlakno[i]->pocetSprav = num;
-            for(int j = 0; j < serv.chatvlakno[i]->pocetSprav; j++) {
+            for (int j = 0; j < serv.chatvlakno[i]->pocetSprav; j++) {
                 bzero(line, 256);
                 fgets(line, 256, fptr4);
-                //fscanf(fptr4,"%s", &line);
                 strcpy(serv.chatvlakno[i]->spravy[j], line);
                 fscanf(fptr4, "%d\n", &num);
                 serv.chatvlakno[i]->klientSprav[j] = num;
             }
-            serv.chatvlakno[i]->shm_key_zdiel_Vlak = vytvorZdielaneVlakno(serv.chatvlakno[i]->cislo, serv.chatvlakno[i]->nazov, serv.chatvlakno[i]->pocetSprav);
+            serv.chatvlakno[i]->shm_key_zdiel_Vlak = vytvorZdielaneVlakno(serv.chatvlakno[i]->cislo,
+                                                                          serv.chatvlakno[i]->nazov,
+                                                                          serv.chatvlakno[i]->pocetSprav);
             fclose(fptr4);
         }
     } else {
-        fptr = fopen("serv_ud.txt","w");
+        fptr = fopen("serv_ud.txt", "w");
         bzero(line, 256);
         strcpy(line, "---Server---udaje---prezyvky---");
-        fprintf(fptr,"%s\n", line);
-        fprintf(fptr,"%d\n", 0);
-        fprintf(fptr,"%d\n", 0);
+        fprintf(fptr, "%s\n", line);
+        fprintf(fptr, "%d\n", 0);
+        fprintf(fptr, "%d\n", 0);
         fclose(fptr);
         FILE *fptr2;
-        fptr2 = fopen("serv_hsl.txt","w");
+        fptr2 = fopen("serv_hsl.txt", "w");
         bzero(line, 256);
         strcpy(line, "---Server---hesla---");
-        fprintf(fptr2,"%s\n", line);
+        fprintf(fptr2, "%s\n", line);
         fclose(fptr2);
     }
 
     pthread_create(&server, NULL, &obsluhujChat, &serv);
     pthread_create(&servPrijmKlient, NULL, &manazujKlientov, &serv);
-    pthread_create(&ukonci, NULL, &skonci, NULL);
+    pthread_create(&ukonci, NULL, &skonci, &serv);
     pthread_join(server, NULL);
     pthread_join(ukonci, NULL);
     pthread_join(servPrijmKlient, NULL);
@@ -331,56 +345,52 @@ int main(int argc, char *argv[]) {
     pthread_condattr_destroy(&condattr2);
     pthread_condattr_destroy(&condattr3);
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         const key_t zdielKey = serv.chatvlakno[i]->shm_key_zdiel_Vlak;
         int shmid = shmget(zdielKey, sizeof(CHATVLAKNOZDIEL), 0666);
-        if(shmid < 0)
-        {
+        if (shmid < 0) {
             perror("Failed to open shared memory block:");
             return 10;
         }
 
-        void* addr = shmat(shmid, NULL, 0);
+        void *addr = shmat(shmid, NULL, 0);
 
-        if(addr == NULL)
-        {
+        if (addr == NULL) {
             perror("Failed to attach shared memory block:");
             return 11;
         }
-        CHATVLAKNOZDIEL* vlZdiel = (CHATVLAKNOZDIEL*)addr;
+        CHATVLAKNOZDIEL *vlZdiel = (CHATVLAKNOZDIEL *) addr;
         pthread_mutex_destroy(&vlZdiel->mutex);
         pthread_cond_destroy(&vlZdiel->odoslana);
         pthread_mutexattr_destroy(&vlZdiel->mutat);
         pthread_condattr_destroy(&vlZdiel->condat);
     }
 
-    for(int i = 0; i < 10 ; i++) {
+    for (int i = 0; i < 10; i++) {
         free(chatVlakna[i]->klienti);
         free(chatVlakna[i]->nazov);
         free(chatVlakna[i]->klientSprav);
         free(chatVlakna[i]);
     }
     free(chatVlakna);
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         free(prezyvky[i]);
         free(hesla[i]);
     }
     free(prezyvky);
     free(hesla);
-    for(int i = 0; i < 10; i++) {
-        for(int j = 0; j < 1000; j++) {
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 1000; j++) {
             free((spravyPole[i])[j]);
         }
         free(spravyPole[i]);
     }
 
-    if(shmdt(addr) != 0)
-    {
+    if (shmdt(addr) != 0) {
         perror("Failed to detach shared memory block:");
         return 1;
     }
     close(sockfd);
-
 
 
     return 0;
