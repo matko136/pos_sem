@@ -119,11 +119,9 @@ void *odosielajSpravu(void *arg) {
                     odosliPoziadavku(7, zdiel, buffer, data->cisloKlient, 0, makeNewChatIds[vybrCislo - 1]);
                 }
             } else {
-                exitKli = true;
                 pthread_exit(NULL);
             }
         } else if (strcmp(s, ";odist") == 0) {
-            exitKli = true;
             pthread_exit(NULL);
         } else {
             if (data->aktChat != 0) {
@@ -225,6 +223,7 @@ int main(int argc, char *argv[]) {
     pthread_create(&prijimanieSprav, NULL, &prijimajSpravy, &klientDat);
     pthread_create(&klient, NULL, &odosielajSpravu, &klientDat);
     pthread_join(klient, NULL);
+    exitKli = true;
     pthread_join(prijimanieSprav, NULL);
 
     return 0;
