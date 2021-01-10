@@ -9,12 +9,13 @@
 
 #       Premene
 nickname=""
-port=0
+port1=0
+port2=0
 vyber_mozn=10
 localhost=localhost
 
-name_server=./server
-name_klient=./klient
+name_server=./Server
+name_klient=./Klient
 
 function pmenu_hl() {
 	clear
@@ -39,14 +40,14 @@ function pmenu_info() {
         
         if [[ $vol == "1" ]]
         then
-        	cat server.c
+        	cat Server.c
         	echo ""
         	read -p "---Pre ukoncenie stlacte Enter: " vol
         fi       
         
         if [[ $vol == "2" ]]
         then
-                cat klient.c
+                cat Klient.c
                 echo ""
                 read -p "---Pre ukoncenie stlacte Enter: " vol
         fi
@@ -56,8 +57,10 @@ function pmenu_info() {
 function pmenu_server() {
 	clear
 	echo "---------===Spustenie Serveru===---------"
-        read -p "---Zadajte cislo portu: " port
-        echo "<1>------Spustenie server: Port:$port"
+        read -p "---Zadajte cislo portu1: " port1
+        read -p "---Zadajte cislo portu2: " port2
+        echo "<1>------Spustenie server: Port1: $port1"
+        echo "                           Port2: $port2"
         echo "<0>------Navrat do hl.Menu---------------"
         echo "---------=======================---------"
         read -p "---Vasa volba: " vol
@@ -67,10 +70,11 @@ function pmenu_server() {
 function pmenu_klient() {
         clear
         echo "---------===Spustenie Klienta===---------"
-        read -p "---Zadajte svoj nickname: " nickname
-        read -p "---Zadajte port serveru: " port
+        read -p "---Zadajte port1 serveru: " port1
+        read -p "---Zadajte port2 serveru " port2
         echo "<1>------Spustenie klienta: Nickname: $nickname"
-        echo "                                Port: $port"
+        echo "                                Port1: $port1"
+        echo "                                Port2: $port2"
         echo "<0>------Navrat do hl.Menu---------------"
         echo "---------=======================---------"
         read -p "---Vasa volba: " vol
@@ -92,7 +96,9 @@ do
 		then
 			clear
 			echo "---SERVER---"
-			$name_server echo "$port"# 	!! MOZNA zmena
+#			$name_server echo "$port1" "$port2"
+			$name_server "$port1" "$port2"
+
 			break
 		fi
 		;;
@@ -103,7 +109,8 @@ do
                 then
                 	clear
                         echo "---KLIENT---"
-                        $name_klient "$localhost" "$port" "$nickname"
+                        $name_klient "$localhost" "$port1" "$port2"
+                        #$name_klient echo "localhost $port1 $port2"
                 	break
                 fi
 		;;
