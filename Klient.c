@@ -95,9 +95,12 @@ void *odosielajSpravu(void *arg) {
                 if (countChatToConnect == 0) {
                     printf("Neexistuju ziadne chaty!\n");
                 } else {
-                    printf("Zadajte cislo: \n");
                     bzero(buffer, 256);
-                    fgets(buffer, 255, stdin);
+                    while (atoi(buffer) < 1 || atoi(buffer) > countChatToConnect) {
+                        printf("Zadajte cislo: \n");
+                        bzero(buffer, 256);
+                        fgets(buffer, 255, stdin);
+                    }
                     int vybrCislo = atoi(buffer);
                     data->aktChat = vybrCislo;
                 }
@@ -118,8 +121,10 @@ void *odosielajSpravu(void *arg) {
                     fgets(buffer, 255, stdin);
                     odosliPoziadavku(7, zdiel, buffer, data->cisloKlient, 0, makeNewChatIds[vybrCislo - 1]);
                 }
-            } else {
+            } else if (strcmp(s, "3") == 0){
                 pthread_exit(NULL);
+            } else {
+                printf("Zadali ste nespravny parameter\n");
             }
         } else if (strcmp(s, ";odist") == 0) {
             pthread_exit(NULL);
