@@ -1,3 +1,4 @@
-ToolSet: 1.0 (remote)Options: 
+ToolSet: Ubuntu 20.04.1 LTS (local)@C:\Users\matob\AppData\Local\Microsoft\WindowsApps\ubuntu.exe
+Options: 
 
 Options:
