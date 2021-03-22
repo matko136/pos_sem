@@ -28,14 +28,14 @@ void initFirst1000Primes() {
 
 unsigned long long int gcd(unsigned long long int int1, unsigned long long int int2) {
     while (int1 != int2) {
-        if (int1 > int2)
+        if (int1 > int2) {
             int1 = int1 % int2;
-        if (int1 == 0) {
-            int1 += int2;
-        } else
+            if (int1 == 0)
+                int1 += int2;
+        } else {
             int2 = int2 % int1;
-        if (int2 == 0) {
-            int2 += int1;
+            if (int2 == 0)
+                int2 += int1;
         }
     }
     return int1;
